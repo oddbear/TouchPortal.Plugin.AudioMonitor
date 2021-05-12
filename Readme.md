@@ -1,8 +1,11 @@
 # WIP: TouchPortal.Plugin.AudioMonitor
-Hotkey Plugin for TouchPortal 2.3+ Windows.
+Audo Monitor Plugin for TouchPortal 2.3+ Windows.
 
-This plugin can be used to monitor your Audio Device in TouchPortal.
+This plugin can be used to monitor your Audio Input Device in TouchPortal.
 This plugin is in a **early stage**, and are still under testing.
+
+Right now we only support Input devices like Microphones.<br />
+The monitor is made to be similar to what you see on the GoXLR Fader Meter, and the Audacity monitor.
 
 ### Settings edit:
 
@@ -19,3 +22,17 @@ The plugin selects the input if it contains this text. If multiple inputs contai
 3. (optional) "Change Button Visuals"<br />
 > Check "Change title to", and save.
 ![Event setup](./Assets/events.png)
+
+### The monitor
+
+* Background: Green, then orange (from -12db) and red (-from -6db).
+* Red line: is the max db that has been recordet after starting to minotr a source.<br />
+* Blue line: is the max monitored the last 3 seconds.<br />
+* Dark border: You are under -12db.<br />
+* Green border: You are in that -6db to -12db range.<br />
+* Red border: You are now over -6db.
+
+### Dependencies
+
+- [NAudio](https://github.com/naudio/NAudio)
+- [TouchPortalSDK](https://github.com/oddbear/TouchPortalSDK)
