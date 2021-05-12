@@ -1,0 +1,26 @@
+{
+  "sdk": 3,
+  "version": 1,
+  "name": "Audio Device Monitor",
+  "id": "oddbear.audio.monitor",
+  "plugin_start_cmd": "%TP_PLUGIN_FOLDER%TouchPortal.Plugin.AudioMonitor\\TouchPortal.Plugin.AudioMonitor.exe",
+  "settings": [{
+      "name": "Device Name",
+      "type": "text"
+    }
+  ],
+  "categories": [{
+      "id": "oddbear.audio.monitor.category",
+      "name": "Input Device Monitor",
+      "actions": [],
+      "states": [{
+          "id": "oddbear.audio.monitor.icon",
+          "type": "text",
+          "desc": "Audio Device Monitor",
+          "default": ""
+        }
+      ],
+      "events": []
+    }
+  ]
+}
