@@ -1,5 +1,5 @@
 # WIP: TouchPortal.Plugin.AudioMonitor
-Audo Monitor Plugin for TouchPortal 2.3+ Windows.
+Audio Monitor Plugin for Touch Portal 2.3+ Windows.
 
 This plugin can be used to monitor your Audio Input Device in TouchPortal.
 This plugin is in a **early stage**, and are still under testing.
