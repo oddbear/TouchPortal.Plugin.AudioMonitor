@@ -31,7 +31,7 @@ The plugin selects the input if it contains this text. If multiple inputs contai
 ### The monitor
 
 * Background: Green, then orange (from -12db) and red (-from -6db).
-* Red line: is the max db that has been recordet after starting to minotr a source.<br />
+* Red line: is the max db that has been recordet after starting to monitor a source.<br />
 * Blue line: is the max monitored the last 3 seconds.<br />
 * Dark border: You are under -12db.<br />
 * Green border: You are in that -6db to -12db range.<br />
