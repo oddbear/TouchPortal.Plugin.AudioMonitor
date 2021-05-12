@@ -21,6 +21,7 @@ The plugin selects the input if it contains this text. If multiple inputs contai
 > Change to "Icon" and state to "Audio Device Monitor"<br />
 3. (optional) "Change Button Visuals"<br />
 > Check "Change title to", and save.
+> 
 ![Event setup](./Assets/events.png)
 
 ### The monitor
