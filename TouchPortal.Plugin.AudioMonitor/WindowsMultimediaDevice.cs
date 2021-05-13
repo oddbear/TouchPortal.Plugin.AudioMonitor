@@ -69,7 +69,10 @@ namespace TouchPortal.Plugin.AudioMonitor
             if (callback is null)
                 return;
 
-            _monitoringThread = new Thread(() => Monitoring(callback));
+            _monitoringThread = new Thread(() => Monitoring(callback))
+            {
+                IsBackground = true
+            };
             _monitoringThread.Start();
         }
 
@@ -84,41 +87,48 @@ namespace TouchPortal.Plugin.AudioMonitor
         
         private void Monitoring(Action<double, double, double> callback)
         {
-            while (true)
+            try
             {
-                var timeout = _updateInterval / _samples;
-
-                var maxSampleVolume = 0f;
-                for (var sample = 0; sample < _samples; sample++)
+                while (true)
                 {
-                    var current = _mmDevice.AudioMeterInformation.MasterPeakValue;
-                    if (current > maxSampleVolume)
-                        maxSampleVolume = current;
+                    var timeout = _updateInterval / _samples;
 
-                    Thread.Sleep(timeout);
+                    var maxSampleVolume = 0f;
+                    for (var sample = 0; sample < _samples; sample++)
+                    {
+                        var current = _mmDevice.AudioMeterInformation.MasterPeakValue;
+                        if (current > maxSampleVolume)
+                            maxSampleVolume = current;
+
+                        Thread.Sleep(timeout); //Interrupted from waiting ... on change...
+                    }
+
+                    //maxSampleVolume is now linear, ex...
+                    //100% ~ 0db
+                    //50% ~ -6db
+                    //25% ~ -12db
+                    //Convert to decibel:
+                    var decibel = Math.Log10(maxSampleVolume) * 20;
+                    decibel = Math.Round(decibel);
+                    decibel = Math.Max(decibel, _dbMin);
+                    decibel = Math.Min(decibel, 0);
+
+                    if (decibel > _maxDecibel)
+                    {
+                        _maxDecibel = decibel;
+                    }
+                    else if (decibel > _prevDecibel || _prevUpdated < DateTime.Now.AddSeconds(-3))
+                    {
+                        _prevDecibel = decibel;
+                        _prevUpdated = DateTime.Now;
+                    }
+
+                    callback(decibel, _prevDecibel, _maxDecibel);
                 }
-
-                //maxSampleVolume is now linear, ex...
-                //100% ~ 0db
-                //50% ~ -6db
-                //25% ~ -12db
-                //Convert to decibel:
-                var decibel = Math.Log10(maxSampleVolume) * 20;
-                decibel = Math.Round(decibel);
-                decibel = Math.Max(decibel, _dbMin);
-                decibel = Math.Min(decibel, 0);
-
-                if (decibel > _maxDecibel)
-                {
-                    _maxDecibel = decibel;
-                }
-                else if (decibel > _prevDecibel || _prevUpdated < DateTime.Now.AddSeconds(-3))
-                {
-                    _prevDecibel = decibel;
-                    _prevUpdated = DateTime.Now;
-                }
-
-                callback(decibel, _prevDecibel, _maxDecibel);
+            }
+            catch (ThreadInterruptedException)
+            {
+                //Ignore, this situation is ok.
             }
         }
 
