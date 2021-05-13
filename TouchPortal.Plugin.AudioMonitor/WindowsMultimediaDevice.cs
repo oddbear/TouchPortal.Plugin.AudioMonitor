@@ -11,6 +11,7 @@ namespace TouchPortal.Plugin.AudioMonitor
         private readonly int _samples;
         private readonly int _updateInterval;
         private readonly int _dbMin;
+        private Action<double> _callback;
 
         private double _maxDecibel;
         private double _prevDecibel;
@@ -21,7 +22,9 @@ namespace TouchPortal.Plugin.AudioMonitor
         private MMDevice _mmDevice;
         private Thread _monitoringThread;
 
-        public WindowsMultimediaDevice(int samples, int updateInterval, int dbMin)
+        public bool IsMonitoring { get; private set; }
+
+        public WindowsMultimediaDevice(int samples, int updateInterval, int dbMin, Action<double> callback)
         {
             if (samples == 0)
                 throw new ArgumentException("Samples must be more than 0. 10 could be a good number (updateInterval / samples = wait time).", nameof(samples));
@@ -35,6 +38,7 @@ namespace TouchPortal.Plugin.AudioMonitor
             _samples = samples;
             _updateInterval = updateInterval;
             _dbMin = dbMin;
+            _callback = callback ?? throw new ArgumentNullException(nameof(callback));
 
             ClearMonitoring();
 
@@ -63,19 +67,20 @@ namespace TouchPortal.Plugin.AudioMonitor
 
             return _mmDevice != null;
         }
-        public void StartMonitoring(Action<double> callback)
+
+        public void StartMonitoring()
         {
             ClearMonitoring();
-            if (callback is null)
-                return;
 
-            _monitoringThread = new Thread(() => Monitoring(callback))
+            _monitoringThread = new Thread(Monitoring)
             {
                 IsBackground = true
             };
             _monitoringThread.Start();
-        }
 
+            IsMonitoring = true;
+        }
+        
         public void ClearMonitoring()
         {
             _monitoringThread?.Interrupt();
@@ -83,9 +88,19 @@ namespace TouchPortal.Plugin.AudioMonitor
             _maxDecibel = _dbMin;
             _prevDecibel = _dbMin;
             _prevUpdated = DateTime.MinValue;
+
+            IsMonitoring = false;
         }
 
-        private void Monitoring(Action<double> callback)
+        public void ToggleMonitoring()
+        {
+            if (IsMonitoring)
+                ClearMonitoring();
+            else
+                StartMonitoring();
+        }
+
+        private void Monitoring()
         {
             try
             {
@@ -123,7 +138,7 @@ namespace TouchPortal.Plugin.AudioMonitor
                         _prevUpdated = DateTime.Now;
                     }
 
-                    callback(decibel);
+                    _callback(decibel);
                 }
             }
             catch (ThreadInterruptedException)

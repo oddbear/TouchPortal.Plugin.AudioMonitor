@@ -26,7 +26,7 @@ namespace TouchPortal.Plugin.AudioMonitor
         {
             _client = TouchPortalFactory.CreateClient(this);
 
-            _windowsMultimediaDevice = new WindowsMultimediaDevice(_samples, _updateInterval, _dbMin);
+            _windowsMultimediaDevice = new WindowsMultimediaDevice(_samples, _updateInterval, _dbMin, MonitoringCallback);
 
             //TouchPortal requires square:
             _monitorGraphics = new MonitorGraphics(_size, _size);
@@ -43,7 +43,7 @@ namespace TouchPortal.Plugin.AudioMonitor
 
             var deviceUpdated = _windowsMultimediaDevice.SetMultimediaDevice(deviceName);
             if(deviceUpdated)
-                _windowsMultimediaDevice.StartMonitoring(MonitoringCallback);
+                _windowsMultimediaDevice.StartMonitoring();
         }
 
         void ITouchPortalEventHandler.OnInfoEvent(InfoEvent message)
@@ -88,6 +88,9 @@ namespace TouchPortal.Plugin.AudioMonitor
             {
                 case "oddbear.audio.monitor.clear":
                     _valueCache.ResetValues();
+                    return;
+                case "oddbear.audio.monitor.toggle":
+                    _windowsMultimediaDevice.ToggleMonitoring();
                     return;
             }
         }
