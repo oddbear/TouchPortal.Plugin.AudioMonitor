@@ -7,9 +7,11 @@ This plugin is in a **early stage**, and are still under testing.
 Right now we only support Input devices like Microphones.<br />
 The monitor is made to be similar to what you see on the GoXLR Fader Meter, and the Audacity monitor.
 
-![-2db](./Assets/-2db.png)
-![-6db](./Assets/-6db.png)
-![-28db](./Assets/-28db.png)
+![-2db](./Assets/-60db.png)
+![-6db](./Assets/-8db.png)
+![-28db](./Assets/-20db.png)
+![-28db](./Assets/-30db.png)
+![-28db](./Assets/-0db.png)
 
 ### Settings edit:
 
@@ -39,5 +41,5 @@ The plugin selects the input if it contains this text. If multiple inputs contai
 
 ### Dependencies
 
-- [NAudio](https://github.com/naudio/NAudio)
+- [NAudio.Wasapi](https://github.com/naudio/NAudio)
 - [TouchPortalSDK](https://github.com/oddbear/TouchPortalSDK)
