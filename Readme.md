@@ -1,6 +1,8 @@
 # WIP: TouchPortal.Plugin.AudioMonitor
 Audio Monitor Plugin for Touch Portal 2.3+ Windows.
 
+Download and install .tpp file from [Releases](https://github.com/oddbear/TouchPortal.Plugin.AudioMonitor/releases).
+
 This plugin can be used to monitor your Audio Input Device in TouchPortal.
 This plugin is in a **early stage**, and are still under testing.
 
@@ -13,22 +15,42 @@ The monitor is made to be similar to what you see on the GoXLR Fader Meter, and 
 ![-28db](./Assets/-30db.png)
 ![-28db](./Assets/-0db.png)
 
-### Settings edit:
-
-The plugin selects the input if it contains this text. If multiple inputs contains this text, the first one it finds will be selected.
-
-![Settings dialog](./Assets/settings.png)
-
 ### Event edit
 
 1. "When Plug-in State changes"<br />
-> Choose "Audio Device Monitor" and "does not change to"
+> Choose "Audio Monitor Current Image Stream" and "does not change to"
 2. "Change visuals by plug-in state"<br />
-> Change to "Icon" and state to "Audio Device Monitor"<br />
+> Change to "Icon" and state to "Audio Monitor Current Image Stream"<br />
 3. (optional) "Change Button Visuals"<br />
 > Check "Change title to", and save.
-> 
+
 ![Event setup](./Assets/events.png)
+
+**Important**: `Audio Monitor Current Device Name` should not be used here.
+> This state is only updated on source switching (and the image will not be updated).
+
+### Actions
+
+* Toggle Monitoring: Pause / Resume monitoring
+* Clear Minitopring: Clear the red and blue line.
+* Next Audio Source: Change audio source to the next availible.
+* Prev Audio Source: Change audio source to the prev availible.
+* Reset Audio Source to Settings: Clears next/prev selection, and uses the default (or the one specified in settings) instead.
+
+### States
+
+* Audio Monitor Current Image Stream: The image that shows the actual monitor.
+* Audio Monitor Current Device Name: A text showing the name of the currently selected device.
+
+### Settings edit:
+
+#### Device Name
+
+* If empty: picks the default Windows Input device.
+* If not empty: picks the first found Input device with a name containing this text.
+* If no match: Nothing is selected, and the image will say "no device"
+
+![Settings dialog](./Assets/settings.png)
 
 ### The monitor
 
