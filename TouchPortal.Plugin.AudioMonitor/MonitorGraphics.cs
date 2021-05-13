@@ -50,15 +50,26 @@ namespace TouchPortal.Plugin.AudioMonitor
             }
         }
 
-        private void FillBackground()
+        private void FillBackground(bool useSoftGradient = false)
         {
             using (var gradient = new LinearGradientBrush(_rectangle, Color.Black, Color.Black, 90, false))
             {
-                gradient.InterpolationColors = new ColorBlend
+                if (useSoftGradient)
                 {
-                    Positions = new[] { 0.00f, 0.10f, 0.20f, 1.00f },
-                    Colors = new[] { Color.Red, Color.Yellow, Color.LightGreen, Color.LightGreen }
-                };
+                    gradient.InterpolationColors = new ColorBlend
+                    {
+                        Positions = new[] { 0.00f, 0.10f, 0.20f, 1.00f },
+                        Colors = new[] { Color.DarkRed, Color.Yellow, Color.LightGreen, Color.LightGreen }
+                    };
+                }
+                else
+                {
+                    gradient.InterpolationColors = new ColorBlend
+                    {
+                        Positions = new[] { 0.00f, 0.10f, 0.10f, 0.20f, 0.20f, 1.00f },
+                        Colors = new[] { Color.DarkRed, Color.DarkRed, Color.Yellow, Color.Yellow, Color.LightGreen, Color.LightGreen }
+                    };
+                }
 
                 _graphics.FillRectangle(gradient, _rectangle);
             }
