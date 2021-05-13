@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Threading;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
@@ -12,11 +11,7 @@ namespace TouchPortal.Plugin.AudioMonitor
         private readonly int _updateInterval;
         private readonly int _dbMin;
         private readonly IPluginCallbacks _callbacks;
-
-        private double _maxDecibel;
-        private double _prevDecibel;
-        private DateTime _prevUpdated;
-
+        
         private readonly WaveInEvent _recorder;
 
         private MMDevice _mmDevice;
@@ -103,11 +98,7 @@ namespace TouchPortal.Plugin.AudioMonitor
         public void ClearMonitoring()
         {
             _monitoringThread?.Interrupt();
-
-            _maxDecibel = _dbMin;
-            _prevDecibel = _dbMin;
-            _prevUpdated = DateTime.MinValue;
-
+            
             IsMonitoring = false;
         }
 
@@ -146,17 +137,7 @@ namespace TouchPortal.Plugin.AudioMonitor
                     decibel = Math.Round(decibel);
                     decibel = Math.Max(decibel, _dbMin);
                     decibel = Math.Min(decibel, 0);
-
-                    if (decibel > _maxDecibel)
-                    {
-                        _maxDecibel = decibel;
-                    }
-                    else if (decibel > _prevDecibel || _prevUpdated < DateTime.Now.AddSeconds(-3))
-                    {
-                        _prevDecibel = decibel;
-                        _prevUpdated = DateTime.Now;
-                    }
-
+                    
                     _callbacks.MonitoringCallback(decibel);
                 }
             }
