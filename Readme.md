@@ -1,7 +1,8 @@
 # WIP: TouchPortal.Plugin.AudioMonitor
 Audio Monitor Plugin for Touch Portal 2.3+ Windows.
 
-Download and install .tpp file from [Releases](https://github.com/oddbear/TouchPortal.Plugin.AudioMonitor/releases).
+Download and install .tpp file from [Releases](https://github.com/oddbear/TouchPortal.Plugin.AudioMonitor/releases). <br />
+**Important:** Some times you need to **refresh** the device page to "Kickstart" the updates.
 
 This plugin can be used to monitor your Audio Input Device in TouchPortal.
 This plugin is in a **early stage**, and are still under testing.
