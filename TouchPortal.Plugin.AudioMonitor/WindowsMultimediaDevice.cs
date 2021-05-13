@@ -63,7 +63,7 @@ namespace TouchPortal.Plugin.AudioMonitor
 
             return _mmDevice != null;
         }
-        public void StartMonitoring(Action<double, double, double> callback)
+        public void StartMonitoring(Action<double> callback)
         {
             ClearMonitoring();
             if (callback is null)
@@ -84,8 +84,8 @@ namespace TouchPortal.Plugin.AudioMonitor
             _prevDecibel = _dbMin;
             _prevUpdated = DateTime.MinValue;
         }
-        
-        private void Monitoring(Action<double, double, double> callback)
+
+        private void Monitoring(Action<double> callback)
         {
             try
             {
@@ -123,7 +123,7 @@ namespace TouchPortal.Plugin.AudioMonitor
                         _prevUpdated = DateTime.Now;
                     }
 
-                    callback(decibel, _prevDecibel, _maxDecibel);
+                    callback(decibel);
                 }
             }
             catch (ThreadInterruptedException)

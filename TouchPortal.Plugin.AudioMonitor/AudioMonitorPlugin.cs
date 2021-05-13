@@ -20,6 +20,7 @@ namespace TouchPortal.Plugin.AudioMonitor
         private readonly ITouchPortalClient _client;
         private readonly WindowsMultimediaDevice _windowsMultimediaDevice;
         private readonly MonitorGraphics _monitorGraphics;
+        private readonly ValueCache _valueCache;
 
         public AudioMonitorPlugin()
         {
@@ -29,6 +30,7 @@ namespace TouchPortal.Plugin.AudioMonitor
 
             //TouchPortal requires square:
             _monitorGraphics = new MonitorGraphics(_size, _size);
+            _valueCache = new ValueCache(_dbMin);
         }
 
         public void Run()
@@ -50,11 +52,14 @@ namespace TouchPortal.Plugin.AudioMonitor
         void ITouchPortalEventHandler.OnSettingsEvent(SettingsEvent message)
             => SetSettings(message.Values);
 
-        public void MonitoringCallback(double decibel, double maxDecibelShort, double maxDecibelLong)
+        public void MonitoringCallback(double decibel)
         {
+            _valueCache.SetValue(decibel);
+
             var value = DecibelToPosition(decibel);
-            var shortValue = DecibelToPosition(maxDecibelShort);
-            var longValue = DecibelToPosition(maxDecibelLong);
+            var shortValue = DecibelToPosition(_valueCache.PrevDecibel);
+            var longValue = DecibelToPosition(_valueCache.MaxDecibel);
+
             var image = _monitorGraphics.DrawPng($"{decibel}db", value, shortValue, longValue);
 
             _client.StateUpdate("oddbear.audio.monitor.icon", Convert.ToBase64String(image));
@@ -76,13 +81,18 @@ namespace TouchPortal.Plugin.AudioMonitor
             var position = _size * percentage;
             return (int) position;
         }
-
-        #region Ignored TouchPortal Events
+        
         void ITouchPortalEventHandler.OnActionEvent(ActionEvent message)
         {
-            //Not used.
+            switch (message.ActionId)
+            {
+                case "oddbear.audio.monitor.clear":
+                    _valueCache.ResetValues();
+                    return;
+            }
         }
 
+        #region Ignored TouchPortal Events
         void ITouchPortalEventHandler.OnBroadcastEvent(BroadcastEvent message)
         {
             //Not used.
