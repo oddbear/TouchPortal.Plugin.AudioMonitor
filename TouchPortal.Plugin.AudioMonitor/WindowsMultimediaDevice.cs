@@ -11,7 +11,7 @@ namespace TouchPortal.Plugin.AudioMonitor
         private readonly int _samples;
         private readonly int _updateInterval;
         private readonly int _dbMin;
-        private Action<double> _callback;
+        private readonly IPluginCallbacks _callbacks;
 
         private double _maxDecibel;
         private double _prevDecibel;
@@ -24,7 +24,7 @@ namespace TouchPortal.Plugin.AudioMonitor
 
         public bool IsMonitoring { get; private set; }
 
-        public WindowsMultimediaDevice(int samples, int updateInterval, int dbMin, Action<double> callback)
+        public WindowsMultimediaDevice(int samples, int updateInterval, int dbMin, IPluginCallbacks callbacks)
         {
             if (samples == 0)
                 throw new ArgumentException("Samples must be more than 0. 10 could be a good number (updateInterval / samples = wait time).", nameof(samples));
@@ -38,7 +38,7 @@ namespace TouchPortal.Plugin.AudioMonitor
             _samples = samples;
             _updateInterval = updateInterval;
             _dbMin = dbMin;
-            _callback = callback ?? throw new ArgumentNullException(nameof(callback));
+            _callbacks = callbacks ?? throw new ArgumentNullException(nameof(callbacks));
 
             ClearMonitoring();
 
@@ -64,9 +64,8 @@ namespace TouchPortal.Plugin.AudioMonitor
                 if (devices[i].FriendlyName.Contains(deviceName))
                 {
                     var index = GetIndex(i + deviceOffset, devices.Count);
-
-                    //TODO: Add readonly settings for current selected device...
                     _mmDevice = devices[index];
+                    _callbacks.MultimediaDeviceUpdateCallback(_mmDevice.FriendlyName);
 
                     return true;
                 }
@@ -158,7 +157,7 @@ namespace TouchPortal.Plugin.AudioMonitor
                         _prevUpdated = DateTime.Now;
                     }
 
-                    _callback(decibel);
+                    _callbacks.MonitoringCallback(decibel);
                 }
             }
             catch (ThreadInterruptedException)

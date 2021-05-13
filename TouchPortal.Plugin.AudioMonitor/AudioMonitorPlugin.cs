@@ -8,7 +8,13 @@ using TouchPortalSDK.Messages.Models;
 
 namespace TouchPortal.Plugin.AudioMonitor
 {
-    public class AudioMonitorPlugin : ITouchPortalEventHandler
+    public interface IPluginCallbacks
+    {
+        void MultimediaDeviceUpdateCallback(string deviceName);
+        void MonitoringCallback(double decibel);
+    }
+
+    public class AudioMonitorPlugin : ITouchPortalEventHandler, IPluginCallbacks
     {
         string ITouchPortalEventHandler.PluginId => "oddbear.audio.monitor";
 
@@ -29,7 +35,7 @@ namespace TouchPortal.Plugin.AudioMonitor
         {
             _client = TouchPortalFactory.CreateClient(this);
 
-            _windowsMultimediaDevice = new WindowsMultimediaDevice(_samples, _updateInterval, _dbMin, MonitoringCallback);
+            _windowsMultimediaDevice = new WindowsMultimediaDevice(_samples, _updateInterval, _dbMin, this);
 
             //TouchPortal requires square:
             _monitorGraphics = new MonitorGraphics(_size, _size);
@@ -59,6 +65,11 @@ namespace TouchPortal.Plugin.AudioMonitor
 
         void ITouchPortalEventHandler.OnSettingsEvent(SettingsEvent message)
             => SetSettings(message.Values);
+
+        public void MultimediaDeviceUpdateCallback(string deviceName)
+        {
+            _client.StateUpdate("oddbear.audio.monitor.device", deviceName);
+        }
 
         public void MonitoringCallback(double decibel)
         {
