@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading;
 using NAudio.CoreAudioApi;
-using NAudio.Wave;
 
 namespace TouchPortal.Plugin.AudioMonitor
 {
@@ -12,9 +11,8 @@ namespace TouchPortal.Plugin.AudioMonitor
         private readonly int _dbMin;
         private readonly IPluginCallbacks _callbacks;
         
-        private readonly WaveInEvent _recorder;
-
         private MMDevice _mmDevice;
+        private WasapiCapture _recorder;
         private Thread _monitoringThread;
 
         public bool IsMonitoring { get; private set; }
@@ -36,16 +34,13 @@ namespace TouchPortal.Plugin.AudioMonitor
             _callbacks = callbacks ?? throw new ArgumentNullException(nameof(callbacks));
 
             ClearMonitoring();
-
-            //Recorder to be able to peak at the MasterVolume.
-            _recorder = new WaveInEvent();
-            _recorder.StartRecording();
         }
 
         public bool SetMultimediaDevice(string deviceName, int deviceOffset)
         {
             ClearMonitoring();
             _mmDevice = null;
+            _recorder?.Dispose();
 
             var enumerator = new MMDeviceEnumerator();
             if (string.IsNullOrWhiteSpace(deviceName))
@@ -59,7 +54,12 @@ namespace TouchPortal.Plugin.AudioMonitor
                 if (devices[i].FriendlyName.Contains(deviceName))
                 {
                     var index = GetIndex(i + deviceOffset, devices.Count);
+                    
                     _mmDevice = devices[index];
+
+                    _recorder = new WasapiCapture(_mmDevice);
+                    _recorder.StartRecording();
+
                     _callbacks.MultimediaDeviceUpdateCallback(_mmDevice.FriendlyName);
 
                     return true;
