@@ -57,7 +57,10 @@ namespace TouchPortal.Plugin.AudioMonitor
         {
             var deviceUpdated = _windowsMultimediaDevice.SetMultimediaDevice(_device, _deviceOffset);
             if (deviceUpdated)
+            {
+                _valueCache.ResetValues();
                 _windowsMultimediaDevice.StartMonitoring();
+            }
         }
 
         void ITouchPortalEventHandler.OnInfoEvent(InfoEvent message)
