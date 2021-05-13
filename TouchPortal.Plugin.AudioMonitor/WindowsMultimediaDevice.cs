@@ -38,13 +38,15 @@ namespace TouchPortal.Plugin.AudioMonitor
             _recorder?.Dispose();
 
             var enumerator = new MMDeviceEnumerator();
-            if (string.IsNullOrWhiteSpace(deviceName))
-                return false;
-
             //DataFlow.Capture -> Microphone/Input
             //DataFlow.Render -> Speakers/Output
             var devices = enumerator
                 .EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
+            
+            if (string.IsNullOrWhiteSpace(deviceName))
+                deviceName = enumerator
+                    .GetDefaultAudioEndpoint(DataFlow.Capture, Role.Multimedia)
+                    .FriendlyName;
 
             for (var i = 0; i < devices.Count; i++)
             {
