@@ -31,9 +31,6 @@ namespace TouchPortal.Plugin.AudioMonitor
             //10x Grid:
             DrawGrids();
 
-            //SafeZone indicator:
-            DrawBorder(value);
-
             //Set short time value:
             DrawLine(shortValue, Color.Blue);
 
@@ -43,6 +40,9 @@ namespace TouchPortal.Plugin.AudioMonitor
             //Text:
             DrawText(text);
 
+            //SafeZone indicator:
+            DrawBorder(value);
+            
             using (var memoryStream = new MemoryStream())
             {
                 _bitmap.Save(memoryStream, ImageFormat.Png);
@@ -115,14 +115,15 @@ namespace TouchPortal.Plugin.AudioMonitor
             _graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
 
             var font = new Font("Tahoma", 10, FontStyle.Bold);
-            var color = Brushes.Blue;
-            var format = new StringFormat
-            {
-                Alignment = StringAlignment.Center,
-                LineAlignment = StringAlignment.Far
-            };
+            var color = Brushes.White;
 
-            _graphics.DrawString(text, font, color, _rectangle, format);
+            var measure = _graphics.MeasureString(text, font);
+            var xPosition = (_rectangle.Width - (int)measure.Width) / 2;
+            var yPosition = _rectangle.Height - (int)measure.Height;
+            var textRectangle = new RectangleF(new Point(xPosition, yPosition), measure);
+
+            _graphics.FillRectangle(new SolidBrush(Color.FromArgb(0xB0, 0x00, 0x00, 0x00)), textRectangle);
+            _graphics.DrawString(text, font, color, textRectangle);
         }
     }
 }
