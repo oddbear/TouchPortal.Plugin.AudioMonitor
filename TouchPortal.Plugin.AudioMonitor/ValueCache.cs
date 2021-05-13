@@ -12,6 +12,8 @@ namespace TouchPortal.Plugin.AudioMonitor
         public ValueCache(int dbMin)
         {
             _dbMin = dbMin;
+            MaxDecibel = _dbMin;
+            PrevDecibel = _dbMin;
         }
 
         public void SetValue(double decibel)

@@ -6,8 +6,7 @@ namespace TouchPortal.Plugin.AudioMonitor
 {
     public class WindowsMultimediaDevice : IDisposable
     {
-        private readonly int _samples;
-        private readonly int _updateInterval;
+        private readonly TimeSpan _updateInterval;
         private readonly int _dbMin;
         private readonly IPluginCallbacks _callbacks;
         
@@ -17,18 +16,14 @@ namespace TouchPortal.Plugin.AudioMonitor
 
         public bool IsMonitoring { get; private set; }
 
-        public WindowsMultimediaDevice(int samples, int updateInterval, int dbMin, IPluginCallbacks callbacks)
+        public WindowsMultimediaDevice(TimeSpan updateInterval, int dbMin, IPluginCallbacks callbacks)
         {
-            if (samples == 0)
-                throw new ArgumentException("Samples must be more than 0. 10 could be a good number (updateInterval / samples = wait time).", nameof(samples));
-
-            if (updateInterval == 0)
+            if (updateInterval == TimeSpan.Zero)
                 throw new ArgumentException("Update interval must be more than samples. 100 or more could be a good number (milliseconds).", nameof(updateInterval));
 
             if (dbMin > 0)
                 throw new ArgumentException("dbMin must be a negative number, -60 could be a good number (decibels).", nameof(dbMin));
-
-            _samples = samples;
+            
             _updateInterval = updateInterval;
             _dbMin = dbMin;
             _callbacks = callbacks ?? throw new ArgumentNullException(nameof(callbacks));
@@ -48,22 +43,24 @@ namespace TouchPortal.Plugin.AudioMonitor
 
             //DataFlow.Capture -> Microphone/Input
             //DataFlow.Render -> Speakers/Output
-            var devices = enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
+            var devices = enumerator
+                .EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
+
             for (var i = 0; i < devices.Count; i++)
             {
-                if (devices[i].FriendlyName.Contains(deviceName))
-                {
-                    var index = GetIndex(i + deviceOffset, devices.Count);
+                if (!devices[i].FriendlyName.Contains(deviceName))
+                    continue;
+
+                var index = GetIndex(i + deviceOffset, devices.Count);
                     
-                    _mmDevice = devices[index];
+                _mmDevice = devices[index];
 
-                    _recorder = new WasapiCapture(_mmDevice);
-                    _recorder.StartRecording();
+                _recorder = new WasapiCapture(_mmDevice);
+                _recorder.StartRecording();
 
-                    _callbacks.MultimediaDeviceUpdateCallback(_mmDevice.FriendlyName);
+                _callbacks.MultimediaDeviceUpdateCallback(_mmDevice.FriendlyName);
 
-                    return true;
-                }
+                return true;
             }
 
             //_mmDevice.AudioEndpointVolume.VolumeRange -> IncrementDecibels, MaxDecibels, MinDecibels
@@ -116,29 +113,21 @@ namespace TouchPortal.Plugin.AudioMonitor
             {
                 while (_mmDevice != null)
                 {
-                    var timeout = _updateInterval / _samples;
-
-                    var maxSampleVolume = 0f;
-                    for (var sample = 0; sample < _samples; sample++)
-                    {
-                        var current = _mmDevice.AudioMeterInformation.MasterPeakValue;
-                        if (current > maxSampleVolume)
-                            maxSampleVolume = current;
-
-                        Thread.Sleep(timeout); //Interrupted from waiting ... on change...
-                    }
+                    var masterPeakValue = _mmDevice.AudioMeterInformation.MasterPeakValue;
 
                     //maxSampleVolume is now linear, ex...
                     //100% ~ 0db
                     //50% ~ -6db
                     //25% ~ -12db
                     //Convert to decibel:
-                    var decibel = Math.Log10(maxSampleVolume) * 20;
+                    var decibel = Math.Log10(masterPeakValue) * 20;
                     decibel = Math.Round(decibel);
                     decibel = Math.Max(decibel, _dbMin);
                     decibel = Math.Min(decibel, 0);
                     
                     _callbacks.MonitoringCallback(decibel);
+
+                    Thread.Sleep(_updateInterval); //Interrupted from waiting ... on change...
                 }
             }
             catch (ThreadInterruptedException)
