@@ -16,7 +16,10 @@ namespace TouchPortal.Plugin.AudioMonitor
         private int _samples = 10;
         private int _updateInterval = 100;
         private int _dbMin = -60;
-        
+
+        private string _device;
+        private int _deviceOffset;
+
         private readonly ITouchPortalClient _client;
         private readonly WindowsMultimediaDevice _windowsMultimediaDevice;
         private readonly MonitorGraphics _monitorGraphics;
@@ -38,11 +41,16 @@ namespace TouchPortal.Plugin.AudioMonitor
 
         private void SetSettings(IEnumerable<Setting> settings)
         {
-            var deviceName = settings
+            _device = settings
                 .SingleOrDefault(setting => setting.Name == "Device Name")?.Value;
 
-            var deviceUpdated = _windowsMultimediaDevice.SetMultimediaDevice(deviceName);
-            if(deviceUpdated)
+            StartMonitoring();
+        }
+
+        private void StartMonitoring()
+        {
+            var deviceUpdated = _windowsMultimediaDevice.SetMultimediaDevice(_device, _deviceOffset);
+            if (deviceUpdated)
                 _windowsMultimediaDevice.StartMonitoring();
         }
 
@@ -91,6 +99,18 @@ namespace TouchPortal.Plugin.AudioMonitor
                     return;
                 case "oddbear.audio.monitor.toggle":
                     _windowsMultimediaDevice.ToggleMonitoring();
+                    return;
+                case "oddbear.audio.monitor.next":
+                    _deviceOffset++;
+                    StartMonitoring();
+                    return;
+                case "oddbear.audio.monitor.prev":
+                    _deviceOffset--;
+                    StartMonitoring();
+                    return;
+                case "oddbear.audio.monitor.reset":
+                    _deviceOffset = 0;
+                    StartMonitoring();
                     return;
             }
         }

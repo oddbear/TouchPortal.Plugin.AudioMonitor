@@ -47,31 +47,51 @@ namespace TouchPortal.Plugin.AudioMonitor
             _recorder.StartRecording();
         }
 
-        public bool SetMultimediaDevice(string deviceName)
+        public bool SetMultimediaDevice(string deviceName, int deviceOffset)
         {
             ClearMonitoring();
+            _mmDevice = null;
+
             var enumerator = new MMDeviceEnumerator();
             if (string.IsNullOrWhiteSpace(deviceName))
                 return false;
 
             //DataFlow.Capture -> Microphone/Input
             //DataFlow.Render -> Speakers/Output
-            _mmDevice = enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
-                .FirstOrDefault(mmDevice => mmDevice.FriendlyName.Contains(deviceName));
+            var devices = enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
+            for (var i = 0; i < devices.Count; i++)
+            {
+                if (devices[i].FriendlyName.Contains(deviceName))
+                {
+                    var index = GetIndex(i + deviceOffset, devices.Count);
+
+                    //TODO: Add readonly settings for current selected device...
+                    _mmDevice = devices[index];
+
+                    return true;
+                }
+            }
 
             //_mmDevice.AudioEndpointVolume.VolumeRange -> IncrementDecibels, MaxDecibels, MinDecibels
             //_mmDevice.AudioEndpointVolume.Mute -> set or get mute status
             //_mmDevice.AudioEndpointVolume.MasterVolumeLevelScalar -> set or get volume in percent 0.0 -> 1.0
 
-            ClearMonitoring();
+            return false;
+        }
 
-            return _mmDevice != null;
+        private  int GetIndex(int offset, int len)
+        {
+            var index = offset % len;
+            if (index < 0)
+                index += len;
+
+            return index;
         }
 
         public void StartMonitoring()
         {
             ClearMonitoring();
-
+            
             _monitoringThread = new Thread(Monitoring)
             {
                 IsBackground = true
@@ -104,7 +124,7 @@ namespace TouchPortal.Plugin.AudioMonitor
         {
             try
             {
-                while (true)
+                while (_mmDevice != null)
                 {
                     var timeout = _updateInterval / _samples;
 
