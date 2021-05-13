@@ -63,6 +63,12 @@ namespace TouchPortal.Plugin.AudioMonitor
                 _valueCache.ResetValues();
                 _windowsMultimediaDevice.StartMonitoring();
             }
+            else
+            {
+                var image = _monitorGraphics.DrawPng("no device", _size, _size, _size);
+                _client.StateUpdate("oddbear.audio.monitor.icon", Convert.ToBase64String(image));
+                _client.StateUpdate("oddbear.audio.monitor.device", $"no device found: '{_device}'");
+            }
         }
 
         void ITouchPortalEventHandler.OnInfoEvent(InfoEvent message)
