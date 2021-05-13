@@ -12,15 +12,21 @@ namespace TouchPortal.Plugin.AudioMonitor
         public ValueCache(int dbMin)
         {
             _dbMin = dbMin;
+            MaxDecibel = _dbMin;
+            PrevDecibel = _dbMin;
         }
 
         public void SetValue(double decibel)
         {
-            if (decibel > MaxDecibel)
+            if (_prevUpdated < DateTime.Now.AddSeconds(-3))
+                PrevDecibel = _dbMin;
+
+            if (decibel >= MaxDecibel)
             {
                 MaxDecibel = decibel;
+                PrevDecibel = _dbMin;
             }
-            else if (decibel > PrevDecibel || _prevUpdated < DateTime.Now.AddSeconds(-3))
+            else if (decibel > PrevDecibel)
             {
                 PrevDecibel = decibel;
                 _prevUpdated = DateTime.Now;

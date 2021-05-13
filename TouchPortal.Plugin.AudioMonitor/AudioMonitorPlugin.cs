@@ -18,10 +18,8 @@ namespace TouchPortal.Plugin.AudioMonitor
     {
         string ITouchPortalEventHandler.PluginId => "oddbear.audio.monitor";
 
-        private int _size = 100;
-        private int _samples = 10;
-        private int _updateInterval = 100;
-        private int _dbMin = -60;
+        private readonly int _size;
+        private readonly int _dbMin;
 
         private string _device;
         private int _deviceOffset;
@@ -33,9 +31,13 @@ namespace TouchPortal.Plugin.AudioMonitor
 
         public AudioMonitorPlugin()
         {
+            _size = 100;
+            _dbMin = -60;
+            var updateInterval = TimeSpan.FromMilliseconds(100);
+
             _client = TouchPortalFactory.CreateClient(this);
 
-            _windowsMultimediaDevice = new WindowsMultimediaDevice(_samples, _updateInterval, _dbMin, this);
+            _windowsMultimediaDevice = new WindowsMultimediaDevice(updateInterval, _dbMin, this);
 
             //TouchPortal requires square:
             _monitorGraphics = new MonitorGraphics(_size, _size);
@@ -60,6 +62,12 @@ namespace TouchPortal.Plugin.AudioMonitor
             {
                 _valueCache.ResetValues();
                 _windowsMultimediaDevice.StartMonitoring();
+            }
+            else
+            {
+                var image = _monitorGraphics.DrawPng("no device", _size, _size, _size);
+                _client.StateUpdate("oddbear.audio.monitor.icon", Convert.ToBase64String(image));
+                _client.StateUpdate("oddbear.audio.monitor.device", $"no device found: '{_device}'");
             }
         }
 

@@ -7,12 +7,14 @@
 
   <ItemGroup>
     <PackageReference Include="NAudio.Wasapi" Version="2.0.0" />
-    <PackageReference Include="NAudio.WinMM" Version="2.0.0" />
     <PackageReference Include="TouchPortalSDK" Version="0.23.1-beta-001" />
   </ItemGroup>
 
   <ItemGroup>
     <None Update="entry.tp">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="logo.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

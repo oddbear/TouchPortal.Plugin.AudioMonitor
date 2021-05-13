@@ -1,7 +1,7 @@
 {
   "sdk": 3,
   "version": 1,
-  "name": "Audio Device Monitor",
+  "name": "Audio Monitor",
   "id": "oddbear.audio.monitor",
   "plugin_start_cmd": "%TP_PLUGIN_FOLDER%TouchPortal.Plugin.AudioMonitor\\TouchPortal.Plugin.AudioMonitor.exe",
   "settings": [
@@ -13,40 +13,41 @@
   "categories": [
     {
       "id": "oddbear.audio.monitor.category",
-      "name": "Input Device Monitor",
+      "name": "Audio Monitor",
+      "imagepath": "%TP_PLUGIN_FOLDER%TouchPortal.Plugin.AudioMonitor\\logo.png",
       "actions": [
         {
           "id": "oddbear.audio.monitor.toggle",
-          "prefix": "Audio",
-          "name": "Toggle monitoring",
+          "prefix": "Audio Monitor",
+          "name": "Toggle Monitoring",
           "type": "communicate",
           "tryInline": true
         },
         {
           "id": "oddbear.audio.monitor.clear",
-          "prefix": "Audio",
-          "name": "Clear monitoring",
+          "prefix": "Audio Monitor",
+          "name": "Clear Monitoring",
           "type": "communicate",
           "tryInline": true
         },
         {
           "id": "oddbear.audio.monitor.next",
-          "prefix": "Audio",
-          "name": "Next source",
+          "prefix": "Audio Monitor",
+          "name": "Next Audio Source",
           "type": "communicate",
           "tryInline": true
         },
         {
           "id": "oddbear.audio.monitor.prev",
-          "prefix": "Audio",
-          "name": "Prev source",
+          "prefix": "Audio Monitor",
+          "name": "Prev Audio Source",
           "type": "communicate",
           "tryInline": true
         },
         {
           "id": "oddbear.audio.monitor.reset",
-          "prefix": "Audio",
-          "name": "Reset source to settings",
+          "prefix": "Audio Monitor",
+          "name": "Reset Audio Source to Settings",
           "type": "communicate",
           "tryInline": true
         }
@@ -55,13 +56,13 @@
         {
           "id": "oddbear.audio.monitor.icon",
           "type": "text",
-          "desc": "Audio Device Monitor",
+          "desc": "Audio Monitor Current Image Stream",
           "default": ""
         },
         {
           "id": "oddbear.audio.monitor.device",
           "type": "text",
-          "desc": "Current Audio Device Monitoring",
+          "desc": "Audio Monitor Current Device Name",
           "default": ""
         }
       ],
