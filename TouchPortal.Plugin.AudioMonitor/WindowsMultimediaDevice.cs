@@ -11,6 +11,7 @@ namespace TouchPortal.Plugin.AudioMonitor
         private readonly int _samples;
         private readonly int _updateInterval;
         private readonly int _dbMin;
+        private readonly IPluginCallbacks _callbacks;
 
         private double _maxDecibel;
         private double _prevDecibel;
@@ -21,7 +22,9 @@ namespace TouchPortal.Plugin.AudioMonitor
         private MMDevice _mmDevice;
         private Thread _monitoringThread;
 
-        public WindowsMultimediaDevice(int samples, int updateInterval, int dbMin)
+        public bool IsMonitoring { get; private set; }
+
+        public WindowsMultimediaDevice(int samples, int updateInterval, int dbMin, IPluginCallbacks callbacks)
         {
             if (samples == 0)
                 throw new ArgumentException("Samples must be more than 0. 10 could be a good number (updateInterval / samples = wait time).", nameof(samples));
@@ -35,6 +38,7 @@ namespace TouchPortal.Plugin.AudioMonitor
             _samples = samples;
             _updateInterval = updateInterval;
             _dbMin = dbMin;
+            _callbacks = callbacks ?? throw new ArgumentNullException(nameof(callbacks));
 
             ClearMonitoring();
 
@@ -43,39 +47,59 @@ namespace TouchPortal.Plugin.AudioMonitor
             _recorder.StartRecording();
         }
 
-        public bool SetMultimediaDevice(string deviceName)
+        public bool SetMultimediaDevice(string deviceName, int deviceOffset)
         {
             ClearMonitoring();
+            _mmDevice = null;
+
             var enumerator = new MMDeviceEnumerator();
             if (string.IsNullOrWhiteSpace(deviceName))
                 return false;
 
             //DataFlow.Capture -> Microphone/Input
             //DataFlow.Render -> Speakers/Output
-            _mmDevice = enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
-                .FirstOrDefault(mmDevice => mmDevice.FriendlyName.Contains(deviceName));
+            var devices = enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
+            for (var i = 0; i < devices.Count; i++)
+            {
+                if (devices[i].FriendlyName.Contains(deviceName))
+                {
+                    var index = GetIndex(i + deviceOffset, devices.Count);
+                    _mmDevice = devices[index];
+                    _callbacks.MultimediaDeviceUpdateCallback(_mmDevice.FriendlyName);
+
+                    return true;
+                }
+            }
 
             //_mmDevice.AudioEndpointVolume.VolumeRange -> IncrementDecibels, MaxDecibels, MinDecibels
             //_mmDevice.AudioEndpointVolume.Mute -> set or get mute status
             //_mmDevice.AudioEndpointVolume.MasterVolumeLevelScalar -> set or get volume in percent 0.0 -> 1.0
 
-            ClearMonitoring();
-
-            return _mmDevice != null;
+            return false;
         }
-        public void StartMonitoring(Action<double, double, double> callback)
+
+        private  int GetIndex(int offset, int len)
+        {
+            var index = offset % len;
+            if (index < 0)
+                index += len;
+
+            return index;
+        }
+
+        public void StartMonitoring()
         {
             ClearMonitoring();
-            if (callback is null)
-                return;
-
-            _monitoringThread = new Thread(() => Monitoring(callback))
+            
+            _monitoringThread = new Thread(Monitoring)
             {
                 IsBackground = true
             };
             _monitoringThread.Start();
-        }
 
+            IsMonitoring = true;
+        }
+        
         public void ClearMonitoring()
         {
             _monitoringThread?.Interrupt();
@@ -83,13 +107,23 @@ namespace TouchPortal.Plugin.AudioMonitor
             _maxDecibel = _dbMin;
             _prevDecibel = _dbMin;
             _prevUpdated = DateTime.MinValue;
+
+            IsMonitoring = false;
         }
-        
-        private void Monitoring(Action<double, double, double> callback)
+
+        public void ToggleMonitoring()
+        {
+            if (IsMonitoring)
+                ClearMonitoring();
+            else
+                StartMonitoring();
+        }
+
+        private void Monitoring()
         {
             try
             {
-                while (true)
+                while (_mmDevice != null)
                 {
                     var timeout = _updateInterval / _samples;
 
@@ -123,7 +157,7 @@ namespace TouchPortal.Plugin.AudioMonitor
                         _prevUpdated = DateTime.Now;
                     }
 
-                    callback(decibel, _prevDecibel, _maxDecibel);
+                    _callbacks.MonitoringCallback(decibel);
                 }
             }
             catch (ThreadInterruptedException)

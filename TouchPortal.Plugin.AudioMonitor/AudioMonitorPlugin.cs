@@ -8,7 +8,13 @@ using TouchPortalSDK.Messages.Models;
 
 namespace TouchPortal.Plugin.AudioMonitor
 {
-    public class AudioMonitorPlugin : ITouchPortalEventHandler
+    public interface IPluginCallbacks
+    {
+        void MultimediaDeviceUpdateCallback(string deviceName);
+        void MonitoringCallback(double decibel);
+    }
+
+    public class AudioMonitorPlugin : ITouchPortalEventHandler, IPluginCallbacks
     {
         string ITouchPortalEventHandler.PluginId => "oddbear.audio.monitor";
 
@@ -16,19 +22,24 @@ namespace TouchPortal.Plugin.AudioMonitor
         private int _samples = 10;
         private int _updateInterval = 100;
         private int _dbMin = -60;
-        
+
+        private string _device;
+        private int _deviceOffset;
+
         private readonly ITouchPortalClient _client;
         private readonly WindowsMultimediaDevice _windowsMultimediaDevice;
         private readonly MonitorGraphics _monitorGraphics;
+        private readonly ValueCache _valueCache;
 
         public AudioMonitorPlugin()
         {
             _client = TouchPortalFactory.CreateClient(this);
 
-            _windowsMultimediaDevice = new WindowsMultimediaDevice(_samples, _updateInterval, _dbMin);
+            _windowsMultimediaDevice = new WindowsMultimediaDevice(_samples, _updateInterval, _dbMin, this);
 
             //TouchPortal requires square:
             _monitorGraphics = new MonitorGraphics(_size, _size);
+            _valueCache = new ValueCache(_dbMin);
         }
 
         public void Run()
@@ -36,12 +47,20 @@ namespace TouchPortal.Plugin.AudioMonitor
 
         private void SetSettings(IEnumerable<Setting> settings)
         {
-            var deviceName = settings
+            _device = settings
                 .SingleOrDefault(setting => setting.Name == "Device Name")?.Value;
 
-            var deviceUpdated = _windowsMultimediaDevice.SetMultimediaDevice(deviceName);
-            if(deviceUpdated)
-                _windowsMultimediaDevice.StartMonitoring(MonitoringCallback);
+            StartMonitoring();
+        }
+
+        private void StartMonitoring()
+        {
+            var deviceUpdated = _windowsMultimediaDevice.SetMultimediaDevice(_device, _deviceOffset);
+            if (deviceUpdated)
+            {
+                _valueCache.ResetValues();
+                _windowsMultimediaDevice.StartMonitoring();
+            }
         }
 
         void ITouchPortalEventHandler.OnInfoEvent(InfoEvent message)
@@ -50,11 +69,19 @@ namespace TouchPortal.Plugin.AudioMonitor
         void ITouchPortalEventHandler.OnSettingsEvent(SettingsEvent message)
             => SetSettings(message.Values);
 
-        public void MonitoringCallback(double decibel, double maxDecibelShort, double maxDecibelLong)
+        public void MultimediaDeviceUpdateCallback(string deviceName)
         {
+            _client.StateUpdate("oddbear.audio.monitor.device", deviceName);
+        }
+
+        public void MonitoringCallback(double decibel)
+        {
+            _valueCache.SetValue(decibel);
+
             var value = DecibelToPosition(decibel);
-            var shortValue = DecibelToPosition(maxDecibelShort);
-            var longValue = DecibelToPosition(maxDecibelLong);
+            var shortValue = DecibelToPosition(_valueCache.PrevDecibel);
+            var longValue = DecibelToPosition(_valueCache.MaxDecibel);
+
             var image = _monitorGraphics.DrawPng($"{decibel}db", value, shortValue, longValue);
 
             _client.StateUpdate("oddbear.audio.monitor.icon", Convert.ToBase64String(image));
@@ -76,13 +103,33 @@ namespace TouchPortal.Plugin.AudioMonitor
             var position = _size * percentage;
             return (int) position;
         }
-
-        #region Ignored TouchPortal Events
+        
         void ITouchPortalEventHandler.OnActionEvent(ActionEvent message)
         {
-            //Not used.
+            switch (message.ActionId)
+            {
+                case "oddbear.audio.monitor.clear":
+                    _valueCache.ResetValues();
+                    return;
+                case "oddbear.audio.monitor.toggle":
+                    _windowsMultimediaDevice.ToggleMonitoring();
+                    return;
+                case "oddbear.audio.monitor.next":
+                    _deviceOffset++;
+                    StartMonitoring();
+                    return;
+                case "oddbear.audio.monitor.prev":
+                    _deviceOffset--;
+                    StartMonitoring();
+                    return;
+                case "oddbear.audio.monitor.reset":
+                    _deviceOffset = 0;
+                    StartMonitoring();
+                    return;
+            }
         }
 
+        #region Ignored TouchPortal Events
         void ITouchPortalEventHandler.OnBroadcastEvent(BroadcastEvent message)
         {
             //Not used.

@@ -11,6 +11,8 @@ namespace TouchPortal.Plugin.AudioMonitor
         private readonly Graphics _graphics;
         private readonly Rectangle _rectangle;
 
+        private readonly Color _darkGrey = Color.FromArgb(0x30, 0x30, 0x30);
+
         public MonitorGraphics(int width, int height)
         {
             _bitmap = new Bitmap(width, height);
@@ -75,7 +77,7 @@ namespace TouchPortal.Plugin.AudioMonitor
         {
             for (var y = 0; y < _bitmap.Height; y += _bitmap.Height / 10)
             {
-                _graphics.DrawLine(new Pen(Color.Black), 0, y, _bitmap.Width, y);
+                _graphics.DrawLine(new Pen(_darkGrey), 0, y, _bitmap.Width, y);
             }
         }
 
@@ -91,7 +93,7 @@ namespace TouchPortal.Plugin.AudioMonitor
         {
             var color = yPosition < 10 ? Color.Red
                       : yPosition < 20 ? Color.Green
-                      : Color.FromArgb(0x30, 0x30, 0x30);
+                      : _darkGrey;
             
             _graphics.DrawRectangle(new Pen(color, 2) { Alignment = PenAlignment.Inset }, _rectangle);
         }

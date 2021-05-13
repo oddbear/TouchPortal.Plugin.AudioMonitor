@@ -4,19 +4,64 @@
   "name": "Audio Device Monitor",
   "id": "oddbear.audio.monitor",
   "plugin_start_cmd": "%TP_PLUGIN_FOLDER%TouchPortal.Plugin.AudioMonitor\\TouchPortal.Plugin.AudioMonitor.exe",
-  "settings": [{
+  "settings": [
+    {
       "name": "Device Name",
       "type": "text"
     }
   ],
-  "categories": [{
+  "categories": [
+    {
       "id": "oddbear.audio.monitor.category",
       "name": "Input Device Monitor",
-      "actions": [],
-      "states": [{
+      "actions": [
+        {
+          "id": "oddbear.audio.monitor.toggle",
+          "prefix": "Audio",
+          "name": "Toggle monitoring",
+          "type": "communicate",
+          "tryInline": true
+        },
+        {
+          "id": "oddbear.audio.monitor.clear",
+          "prefix": "Audio",
+          "name": "Clear monitoring",
+          "type": "communicate",
+          "tryInline": true
+        },
+        {
+          "id": "oddbear.audio.monitor.next",
+          "prefix": "Audio",
+          "name": "Next source",
+          "type": "communicate",
+          "tryInline": true
+        },
+        {
+          "id": "oddbear.audio.monitor.prev",
+          "prefix": "Audio",
+          "name": "Prev source",
+          "type": "communicate",
+          "tryInline": true
+        },
+        {
+          "id": "oddbear.audio.monitor.reset",
+          "prefix": "Audio",
+          "name": "Reset source to settings",
+          "type": "communicate",
+          "tryInline": true
+        }
+      ],
+      "states": [
+        {
           "id": "oddbear.audio.monitor.icon",
           "type": "text",
           "desc": "Audio Device Monitor",
+          "default": ""
+        },
+        {
+          "id": "oddbear.audio.monitor.device",
+          "type": "text",
+          "desc": "Current Audio Device Monitoring",
           "default": ""
         }
       ],
