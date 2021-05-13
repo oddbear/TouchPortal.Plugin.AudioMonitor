@@ -6,7 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NAudio" Version="2.0.0" />
+    <PackageReference Include="NAudio.Wasapi" Version="2.0.0" />
+    <PackageReference Include="NAudio.WinMM" Version="2.0.0" />
     <PackageReference Include="TouchPortalSDK" Version="0.23.1-beta-001" />
   </ItemGroup>
 
