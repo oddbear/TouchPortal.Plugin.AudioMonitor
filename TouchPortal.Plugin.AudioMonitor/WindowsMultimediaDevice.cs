@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using NAudio.CoreAudioApi;
 
@@ -31,56 +32,49 @@ namespace TouchPortal.Plugin.AudioMonitor
             ClearMonitoring();
         }
 
-        public bool SetMultimediaDevice(string deviceName, int deviceOffset)
+        public string[] GetSources(DataFlow dataFlow)
+        {
+            var enumerator = new MMDeviceEnumerator();
+            var devices = enumerator
+                .EnumerateAudioEndPoints(dataFlow, DeviceState.Active);
+
+            return devices.Select(device => device.FriendlyName).ToArray();
+        }
+
+        public bool SetMultimediaDevice(string deviceName, DataFlow dataFlow)
         {
             ClearMonitoring();
             _mmDevice = null;
             _recorder?.Dispose();
 
             var enumerator = new MMDeviceEnumerator();
-            //DataFlow.Capture -> Microphone/Input
-            //DataFlow.Render -> Speakers/Output
-            var devices = enumerator
-                .EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
             
             if (string.IsNullOrWhiteSpace(deviceName))
                 deviceName = enumerator
-                    .GetDefaultAudioEndpoint(DataFlow.Capture, Role.Multimedia)
+                    .GetDefaultAudioEndpoint(dataFlow, Role.Multimedia)
                     .FriendlyName;
 
-            for (var i = 0; i < devices.Count; i++)
-            {
-                if (!devices[i].FriendlyName.Contains(deviceName))
-                    continue;
+            //DataFlow.Capture -> Microphone/Input
+            //DataFlow.Render -> Speakers/Output
+            _mmDevice = enumerator
+                .EnumerateAudioEndPoints(dataFlow, DeviceState.Active)
+                .FirstOrDefault(mmDevice => mmDevice.FriendlyName == deviceName);
 
-                var index = GetIndex(i + deviceOffset, devices.Count);
-                    
-                _mmDevice = devices[index];
+            if (_mmDevice is null)
+                return false;
 
-                _recorder = new WasapiCapture(_mmDevice);
-                _recorder.StartRecording();
+            _recorder = new WasapiCapture(_mmDevice);
+            _recorder.StartRecording();
 
-                _callbacks.MultimediaDeviceUpdateCallback(_mmDevice.FriendlyName);
-
-                return true;
-            }
-
+            _callbacks.MultimediaDeviceUpdateCallback(_mmDevice.FriendlyName);
+            
             //_mmDevice.AudioEndpointVolume.VolumeRange -> IncrementDecibels, MaxDecibels, MinDecibels
             //_mmDevice.AudioEndpointVolume.Mute -> set or get mute status
             //_mmDevice.AudioEndpointVolume.MasterVolumeLevelScalar -> set or get volume in percent 0.0 -> 1.0
 
-            return false;
+            return true;
         }
-
-        private  int GetIndex(int offset, int len)
-        {
-            var index = offset % len;
-            if (index < 0)
-                index += len;
-
-            return index;
-        }
-
+        
         public void StartMonitoring()
         {
             ClearMonitoring();

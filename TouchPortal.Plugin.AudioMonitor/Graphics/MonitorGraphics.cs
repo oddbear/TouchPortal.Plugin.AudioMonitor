@@ -3,12 +3,12 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 
-namespace TouchPortal.Plugin.AudioMonitor
+namespace TouchPortal.Plugin.AudioMonitor.Graphics
 {
     public class MonitorGraphics
     {
         private readonly Bitmap _bitmap;
-        private readonly Graphics _graphics;
+        private readonly System.Drawing.Graphics _graphics;
         private readonly Rectangle _rectangle;
 
         private readonly Color _darkGrey = Color.FromArgb(0x30, 0x30, 0x30);
@@ -16,7 +16,7 @@ namespace TouchPortal.Plugin.AudioMonitor
         public MonitorGraphics(int width, int height)
         {
             _bitmap = new Bitmap(width, height);
-            _graphics = Graphics.FromImage(_bitmap);
+            _graphics = System.Drawing.Graphics.FromImage(_bitmap);
             _rectangle = new Rectangle(0, 0, width, height);
         }
 

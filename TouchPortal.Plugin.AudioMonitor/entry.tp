@@ -31,25 +31,30 @@
           "tryInline": true
         },
         {
-          "id": "oddbear.audio.monitor.next",
+          "id": "oddbear.audio.monitor.source",
           "prefix": "Audio Monitor",
-          "name": "Next Audio Source",
+          "name": "Set Audio Source Monitoring",
           "type": "communicate",
-          "tryInline": true
-        },
-        {
-          "id": "oddbear.audio.monitor.prev",
-          "prefix": "Audio Monitor",
-          "name": "Prev Audio Source",
-          "type": "communicate",
-          "tryInline": true
-        },
-        {
-          "id": "oddbear.audio.monitor.reset",
-          "prefix": "Audio Monitor",
-          "name": "Reset Audio Source to Settings",
-          "type": "communicate",
-          "tryInline": true
+          "tryInline": true,
+          "format": "Set monitoring of {$oddbear.audio.monitor.source.type$} source to {$oddbear.audio.monitor.source.device$}",
+          "data": [
+            {
+              "id": "oddbear.audio.monitor.source.type",
+              "type": "choice",
+              "label": "Type",
+              "default": "Audio Input",
+              "valueChoices": [
+                "Audio Output",
+                "Audio Input"
+              ]
+            },
+            {
+              "id": "oddbear.audio.monitor.source.device",
+              "type": "choice",
+              "label": "Device Name",
+              "default": ""
+            }
+          ]
         }
       ],
       "states": [
