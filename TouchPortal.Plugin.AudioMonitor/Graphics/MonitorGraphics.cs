@@ -58,7 +58,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Graphics
                 {
                     gradient.InterpolationColors = new ColorBlend
                     {
-                        Positions = new[] { 0.00f, 0.10f, 0.20f, 1.00f },
+                        Positions = new[] { 0.00f, 0.25f, 0.50f, 1.00f },
                         Colors = new[] { Color.DarkRed, Color.Yellow, Color.LightGreen, Color.LightGreen }
                     };
                 }
@@ -66,7 +66,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Graphics
                 {
                     gradient.InterpolationColors = new ColorBlend
                     {
-                        Positions = new[] { 0.00f, 0.10f, 0.10f, 0.20f, 0.20f, 1.00f },
+                        Positions = new[] { 0.00f, 0.25f, 0.25f, 0.50f, 0.50f, 1.00f },
                         Colors = new[] { Color.DarkRed, Color.DarkRed, Color.Yellow, Color.Yellow, Color.LightGreen, Color.LightGreen }
                     };
                 }

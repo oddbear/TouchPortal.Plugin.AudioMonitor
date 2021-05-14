@@ -97,13 +97,24 @@ namespace TouchPortal.Plugin.AudioMonitor
         {
             _valueCache.SetValue(decibel);
 
-            var value = DecibelToPosition(decibel);
-            var shortValue = DecibelToPosition(_valueCache.PrevDecibel);
-            var longValue = DecibelToPosition(_valueCache.MaxDecibel);
+            var value = LinearToPosition(decibel);
+            var shortValue = LinearToPosition(_valueCache.PrevDecibel);
+            var longValue = LinearToPosition(_valueCache.MaxDecibel);
 
-            var image = _monitorGraphics.DrawPng($"{decibel}db", value, shortValue, longValue);
+            var text = decibel < -60
+                ? "low"
+                : $"{_valueCache.MaxDecibel}db {longValue}%";
+
+            var image = _monitorGraphics.DrawPng(text, value, shortValue, longValue);
 
             _client.StateUpdate("oddbear.audio.monitor.icon", Convert.ToBase64String(image));
+        }
+
+        private int LinearToPosition(double decibel)
+        {
+            var percentage = Math.Pow(10, decibel / 20);
+            var position = _size - _size * percentage;
+            return (int) position;
         }
 
         private int DecibelToPosition(double decibel)
