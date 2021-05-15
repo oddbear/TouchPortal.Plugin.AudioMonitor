@@ -1,6 +1,6 @@
 {
   "sdk": 3,
-  "version": 1,
+  "version": 2,
   "name": "Audio Monitor",
   "id": "oddbear.audio.monitor",
   "plugin_start_cmd": "%TP_PLUGIN_FOLDER%TouchPortal.Plugin.AudioMonitor\\TouchPortal.Plugin.AudioMonitor.exe",
