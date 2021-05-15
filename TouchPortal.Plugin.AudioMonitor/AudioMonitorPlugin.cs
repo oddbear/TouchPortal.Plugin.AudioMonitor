@@ -30,11 +30,10 @@ namespace TouchPortal.Plugin.AudioMonitor
         public AudioMonitorPlugin(AppConfiguration configuration)
         {
             var dbMin = -60;
-            var updateInterval = TimeSpan.FromMilliseconds(100);
 
             _client = TouchPortalFactory.CreateClient(this);
 
-            _windowsMultimediaDevice = new WindowsMultimediaDevice(updateInterval, dbMin, this);
+            _windowsMultimediaDevice = new WindowsMultimediaDevice(dbMin, this);
             
             _monitorGraphics = new MonitorGraphics(configuration, dbMin);
             _valueCache = new ValueCache(dbMin);

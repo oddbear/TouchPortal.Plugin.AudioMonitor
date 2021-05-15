@@ -10,9 +10,7 @@ namespace TouchPortal.Plugin.AudioMonitor
     {
         private readonly AppConfiguration _appSettings;
         private readonly int _dbMin;
-
-        private readonly Color _darkGrey = Color.FromArgb(0x30, 0x30, 0x30);
-
+        
         public MonitorGraphics(AppConfiguration appSettings, int dbMin)
         {
             _appSettings = appSettings;
@@ -21,16 +19,6 @@ namespace TouchPortal.Plugin.AudioMonitor
         
         private int DecibelToPosition(double decibel)
         {
-            //Get percentage of Monitor bar, ex.
-            //---   0db ---
-            //     -6db
-            //    -12db
-            //     ...
-            //--- -60db ---
-            //Calculation:
-            //-6db / -60 = 0.1
-            //1 - 0.1 = 0.9
-            //100px * 0.9 = 90px (fill)
             var percentage = decibel / _dbMin;
             var position = _appSettings.Height * percentage;
             return (int)position;
@@ -60,16 +48,16 @@ namespace TouchPortal.Plugin.AudioMonitor
                 DrawGrids(graphics);
 
                 //Set short time value:
-                DrawLine(graphics, shortValue, Color.Blue);
+                DrawLine(graphics, shortValue, _appSettings.ColorPrev);
 
                 //Set all time value:
-                DrawLine(graphics, longValue, Color.Red);
+                DrawLine(graphics, longValue, _appSettings.ColorMax);
 
                 //Text:
                 DrawText(graphics, rectangle, text);
 
                 //SafeZone indicator:
-                DrawBorder(graphics, rectangle, value);
+                DrawBorder(graphics, rectangle);
 
                 using (var memoryStream = new MemoryStream())
                 {
@@ -107,7 +95,7 @@ namespace TouchPortal.Plugin.AudioMonitor
 
         private void ClearBackground(Graphics graphics, int width, int yPosition)
         {
-            using (var background = new SolidBrush(Color.DarkGray))
+            using (var background = new SolidBrush(_appSettings.ColorBackground))
             {
                 var backgroundRect = new Rectangle(0, 0, width, yPosition);
                 graphics.FillRectangle(background, backgroundRect);
@@ -118,7 +106,7 @@ namespace TouchPortal.Plugin.AudioMonitor
         {
             for (var y = 0; y < _appSettings.Height; y += _appSettings.Height / 10)
             {
-                graphics.DrawLine(new Pen(_darkGrey), 0, y, _appSettings.Width, y);
+                graphics.DrawLine(new Pen(_appSettings.ColorLines), 0, y, _appSettings.Width, y);
             }
         }
 
@@ -130,13 +118,9 @@ namespace TouchPortal.Plugin.AudioMonitor
             }
         }
 
-        private void DrawBorder(Graphics graphics, Rectangle rectangle, int yPosition)
+        private void DrawBorder(Graphics graphics, Rectangle rectangle)
         {
-            var color = yPosition < 10 ? Color.Red
-                      : yPosition < 20 ? Color.Green
-                      : _darkGrey;
-
-            graphics.DrawRectangle(new Pen(color, 2) { Alignment = PenAlignment.Inset }, rectangle);
+            graphics.DrawRectangle(new Pen(_appSettings.ColorLines, 2) { Alignment = PenAlignment.Inset }, rectangle);
         }
 
         private void DrawText(Graphics graphics, Rectangle rectangle, string text)
