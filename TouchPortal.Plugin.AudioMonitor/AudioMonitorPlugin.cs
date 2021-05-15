@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using TouchPortal.Plugin.AudioMonitor.Configuration;
 using TouchPortalSDK;
 using TouchPortalSDK.Interfaces;
 using TouchPortalSDK.Messages.Events;
@@ -17,10 +18,7 @@ namespace TouchPortal.Plugin.AudioMonitor
     public class AudioMonitorPlugin : ITouchPortalEventHandler, IPluginCallbacks
     {
         string ITouchPortalEventHandler.PluginId => "oddbear.audio.monitor";
-
-        private readonly int _size;
-        private readonly int _dbMin;
-
+        
         private string _device;
         private int _deviceOffset;
 
@@ -29,19 +27,17 @@ namespace TouchPortal.Plugin.AudioMonitor
         private readonly MonitorGraphics _monitorGraphics;
         private readonly ValueCache _valueCache;
 
-        public AudioMonitorPlugin()
+        public AudioMonitorPlugin(AppConfiguration configuration)
         {
-            _size = 100;
-            _dbMin = -60;
+            var dbMin = -60;
             var updateInterval = TimeSpan.FromMilliseconds(100);
 
             _client = TouchPortalFactory.CreateClient(this);
 
-            _windowsMultimediaDevice = new WindowsMultimediaDevice(updateInterval, _dbMin, this);
-
-            //TouchPortal requires square:
-            _monitorGraphics = new MonitorGraphics(_size, _size);
-            _valueCache = new ValueCache(_dbMin);
+            _windowsMultimediaDevice = new WindowsMultimediaDevice(updateInterval, dbMin, this);
+            
+            _monitorGraphics = new MonitorGraphics(configuration, dbMin);
+            _valueCache = new ValueCache(dbMin);
         }
 
         public void Run()
@@ -65,7 +61,7 @@ namespace TouchPortal.Plugin.AudioMonitor
             }
             else
             {
-                var image = _monitorGraphics.DrawPng("no device", _size, _size, _size);
+                var image = _monitorGraphics.DrawPng("no device");
                 _client.StateUpdate("oddbear.audio.monitor.icon", Convert.ToBase64String(image));
                 _client.StateUpdate("oddbear.audio.monitor.device", $"no device found: '{_device}'");
             }
@@ -86,30 +82,9 @@ namespace TouchPortal.Plugin.AudioMonitor
         {
             _valueCache.SetValue(decibel);
 
-            var value = DecibelToPosition(decibel);
-            var shortValue = DecibelToPosition(_valueCache.PrevDecibel);
-            var longValue = DecibelToPosition(_valueCache.MaxDecibel);
-
-            var image = _monitorGraphics.DrawPng($"{decibel}db", value, shortValue, longValue);
+            var image = _monitorGraphics.DrawPng($"{decibel}db", decibel, _valueCache.PrevDecibel, _valueCache.MaxDecibel);
 
             _client.StateUpdate("oddbear.audio.monitor.icon", Convert.ToBase64String(image));
-        }
-
-        private int DecibelToPosition(double decibel)
-        {
-            //Get percentage of Monitor bar, ex.
-            //---   0db ---
-            //     -6db
-            //    -12db
-            //     ...
-            //--- -60db ---
-            //Calculation:
-            //-6db / -60 = 0.1
-            //1 - 0.1 = 0.9
-            //100px * 0.9 = 90px (fill)
-            var percentage = decibel / _dbMin;
-            var position = _size * percentage;
-            return (int) position;
         }
         
         void ITouchPortalEventHandler.OnActionEvent(ActionEvent message)

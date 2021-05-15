@@ -64,11 +64,7 @@ namespace TouchPortal.Plugin.AudioMonitor
 
                 return true;
             }
-
-            //_mmDevice.AudioEndpointVolume.VolumeRange -> IncrementDecibels, MaxDecibels, MinDecibels
-            //_mmDevice.AudioEndpointVolume.Mute -> set or get mute status
-            //_mmDevice.AudioEndpointVolume.MasterVolumeLevelScalar -> set or get volume in percent 0.0 -> 1.0
-
+            
             return false;
         }
 
