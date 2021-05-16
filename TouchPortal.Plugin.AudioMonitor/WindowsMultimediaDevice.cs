@@ -4,7 +4,7 @@ using NAudio.CoreAudioApi;
 
 namespace TouchPortal.Plugin.AudioMonitor
 {
-    public class WindowsMultimediaDevice : IDisposable
+    public class WindowsMultimediaDevice
     {
         private readonly IPluginCallbacks _callbacks;
         
@@ -17,15 +17,12 @@ namespace TouchPortal.Plugin.AudioMonitor
         public WindowsMultimediaDevice(IPluginCallbacks callbacks)
         {
             _callbacks = callbacks ?? throw new ArgumentNullException(nameof(callbacks));
-
-            ClearMonitoring();
         }
 
         public bool SetMultimediaDevice(string deviceName, int deviceOffset)
         {
             ClearMonitoring();
-            _mmDevice = null;
-            _recorder?.Dispose();
+            ClearMultimediaDevice();
 
             var enumerator = new MMDeviceEnumerator();
             //DataFlow.Capture -> Microphone/Input
@@ -58,7 +55,15 @@ namespace TouchPortal.Plugin.AudioMonitor
             return false;
         }
 
-        private  int GetIndex(int offset, int len)
+        private void ClearMultimediaDevice()
+        {
+            _recorder?.Dispose();
+            _recorder = null;
+            _mmDevice?.Dispose();
+            _mmDevice = null;
+        }
+
+        private int GetIndex(int offset, int len)
         {
             var index = offset % len;
             if (index < 0)
@@ -115,11 +120,6 @@ namespace TouchPortal.Plugin.AudioMonitor
             {
                 //Ignore, this situation is ok.
             }
-        }
-
-        public void Dispose()
-        {
-            _recorder.Dispose();
         }
     }
 }
