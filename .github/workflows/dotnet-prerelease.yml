@@ -1,0 +1,37 @@
+name: .NET Pre-Release
+
+on:
+  push:
+    tags:
+      - 'v*-*'
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore
+    - name: Test
+      run: dotnet test --no-build --verbosity normal
+    - name: Publish
+      run: dotnet publish -c Release -o publish\TouchPortal.Plugin.AudioMonitor
+    - name: Archive
+      shell: bash
+      run: 7z a -tzip "TouchPortal.Plugin.AudioMonitor.tpp" "./publish/*"
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: TouchPortal.Plugin.AudioMonitor.tpp
+        prerelease: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
