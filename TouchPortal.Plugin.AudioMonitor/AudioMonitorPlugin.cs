@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using TouchPortal.Plugin.AudioMonitor.Configuration;
+using TouchPortal.Plugin.AudioMonitor.Settings;
 using TouchPortalSDK;
 using TouchPortalSDK.Interfaces;
 using TouchPortalSDK.Messages.Events;
@@ -27,17 +27,15 @@ namespace TouchPortal.Plugin.AudioMonitor
         private readonly MonitorGraphics _monitorGraphics;
         private readonly ValueCache _valueCache;
 
-        public AudioMonitorPlugin(AppConfiguration configuration)
+        public AudioMonitorPlugin(AppSettings appSettings)
         {
-            var dbMin = -60;
-            var updateInterval = TimeSpan.FromMilliseconds(100);
-
             _client = TouchPortalFactory.CreateClient(this);
 
-            _windowsMultimediaDevice = new WindowsMultimediaDevice(updateInterval, dbMin, this);
+            _windowsMultimediaDevice = new WindowsMultimediaDevice(this);
             
-            _monitorGraphics = new MonitorGraphics(configuration, dbMin);
-            _valueCache = new ValueCache(dbMin);
+            _monitorGraphics = new MonitorGraphics(appSettings);
+            
+            _valueCache = new ValueCache();
         }
 
         public void Run()
@@ -77,12 +75,12 @@ namespace TouchPortal.Plugin.AudioMonitor
         {
             _client.StateUpdate("oddbear.audio.monitor.device", deviceName);
         }
-
+        
         public void MonitoringCallback(double decibel)
         {
             _valueCache.SetValue(decibel);
-
-            var image = _monitorGraphics.DrawPng($"{decibel}db", decibel, _valueCache.PrevDecibel, _valueCache.MaxDecibel);
+            
+            var image = _monitorGraphics.DrawPng(decibel, _valueCache.PrevDecibel, _valueCache.MaxDecibel);
 
             _client.StateUpdate("oddbear.audio.monitor.icon", Convert.ToBase64String(image));
         }

@@ -1,6 +1,6 @@
 ﻿using System;
 using Microsoft.Extensions.DependencyInjection;
-using TouchPortal.Plugin.AudioMonitor.Configuration;
+using TouchPortal.Plugin.AudioMonitor.Settings;
 
 namespace TouchPortal.Plugin.AudioMonitor
 {
@@ -19,7 +19,7 @@ namespace TouchPortal.Plugin.AudioMonitor
             var services = new ServiceCollection();
 
             services.AddSingleton<AudioMonitorPlugin>();
-            services.AddSingleton<AppConfiguration>();
+            services.AddSingleton<AppSettings>();
 
             return services.BuildServiceProvider(true);
         }

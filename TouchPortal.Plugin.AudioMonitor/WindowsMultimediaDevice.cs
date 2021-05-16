@@ -6,8 +6,6 @@ namespace TouchPortal.Plugin.AudioMonitor
 {
     public class WindowsMultimediaDevice : IDisposable
     {
-        private readonly TimeSpan _updateInterval;
-        private readonly int _dbMin;
         private readonly IPluginCallbacks _callbacks;
         
         private MMDevice _mmDevice;
@@ -16,16 +14,8 @@ namespace TouchPortal.Plugin.AudioMonitor
 
         public bool IsMonitoring { get; private set; }
 
-        public WindowsMultimediaDevice(TimeSpan updateInterval, int dbMin, IPluginCallbacks callbacks)
+        public WindowsMultimediaDevice(IPluginCallbacks callbacks)
         {
-            if (updateInterval == TimeSpan.Zero)
-                throw new ArgumentException("Update interval must be more than samples. 100 or more could be a good number (milliseconds).", nameof(updateInterval));
-
-            if (dbMin > 0)
-                throw new ArgumentException("dbMin must be a negative number, -60 could be a good number (decibels).", nameof(dbMin));
-            
-            _updateInterval = updateInterval;
-            _dbMin = dbMin;
             _callbacks = callbacks ?? throw new ArgumentNullException(nameof(callbacks));
 
             ClearMonitoring();
@@ -112,20 +102,13 @@ namespace TouchPortal.Plugin.AudioMonitor
                 while (_mmDevice != null)
                 {
                     var masterPeakValue = _mmDevice.AudioMeterInformation.MasterPeakValue;
-
-                    //maxSampleVolume is now linear, ex...
-                    //100% ~ 0db
-                    //50% ~ -6db
-                    //25% ~ -12db
-                    //Convert to decibel:
+                    
                     var decibel = Math.Log10(masterPeakValue) * 20;
                     decibel = Math.Round(decibel);
-                    decibel = Math.Max(decibel, _dbMin);
-                    decibel = Math.Min(decibel, 0);
                     
                     _callbacks.MonitoringCallback(decibel);
 
-                    Thread.Sleep(_updateInterval); //Interrupted from waiting ... on change...
+                    Thread.Sleep(100); //Interrupted from waiting ... on change...
                 }
             }
             catch (ThreadInterruptedException)

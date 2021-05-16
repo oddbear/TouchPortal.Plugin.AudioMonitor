@@ -1,50 +1,63 @@
-﻿using System.Drawing;
+﻿using System;
+using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
-using TouchPortal.Plugin.AudioMonitor.Configuration;
+using TouchPortal.Plugin.AudioMonitor.Settings;
 
 namespace TouchPortal.Plugin.AudioMonitor
 {
     public class MonitorGraphics
     {
-        private readonly AppConfiguration _appSettings;
-        private readonly int _dbMin;
-
-        private readonly Color _darkGrey = Color.FromArgb(0x30, 0x30, 0x30);
-
-        public MonitorGraphics(AppConfiguration appSettings, int dbMin)
+        private readonly AppSettings _appSettings;
+        private readonly int _dbMin = -60;
+        
+        public MonitorGraphics(AppSettings appSettings)
         {
             _appSettings = appSettings;
-            _dbMin = dbMin;
         }
-        
+
+        private double DecibelWindow(double decibel)
+        {
+            if (decibel > 0)
+                return 0;
+
+            if (decibel < _dbMin)
+                return _dbMin;
+            
+            return decibel;
+        }
+
         private int DecibelToPosition(double decibel)
         {
-            //Get percentage of Monitor bar, ex.
-            //---   0db ---
-            //     -6db
-            //    -12db
-            //     ...
-            //--- -60db ---
-            //Calculation:
-            //-6db / -60 = 0.1
-            //1 - 0.1 = 0.9
-            //100px * 0.9 = 90px (fill)
             var percentage = decibel / _dbMin;
             var position = _appSettings.Height * percentage;
+
             return (int)position;
         }
 
         public byte[] DrawPng(string text)
             => DrawPng(text, _dbMin, _dbMin, _dbMin);
 
-        public byte[] DrawPng(string text, double decibel, double prevDecibel, double maxDecibel)
+        public byte[] DrawPng(double decibel, double prevDecibel, double maxDecibel)
         {
+            var text = decibel < -60
+                ? "low"
+                : $"{decibel}db";
+
+            decibel = DecibelWindow(decibel);
+            prevDecibel = DecibelWindow(prevDecibel);
+            maxDecibel = DecibelWindow(maxDecibel);
+
             var value = DecibelToPosition(decibel);
             var shortValue = DecibelToPosition(prevDecibel);
             var longValue = DecibelToPosition(maxDecibel);
 
+            return DrawPng(text, value, shortValue, longValue);
+        }
+
+        private byte[] DrawPng(string text, int value, int shortValue, int longValue)
+        {
             using (var bitmap = new Bitmap(_appSettings.Width, _appSettings.Height))
             using (var graphics = Graphics.FromImage(bitmap))
             {
@@ -60,16 +73,16 @@ namespace TouchPortal.Plugin.AudioMonitor
                 DrawGrids(graphics);
 
                 //Set short time value:
-                DrawLine(graphics, shortValue, Color.Blue);
+                DrawLine(graphics, shortValue, _appSettings.ColorLinePrev);
 
                 //Set all time value:
-                DrawLine(graphics, longValue, Color.Red);
+                DrawLine(graphics, longValue, _appSettings.ColorLineMax);
 
                 //Text:
                 DrawText(graphics, rectangle, text);
 
                 //SafeZone indicator:
-                DrawBorder(graphics, rectangle, value);
+                DrawBorder(graphics, rectangle);
 
                 using (var memoryStream = new MemoryStream())
                 {
@@ -89,7 +102,7 @@ namespace TouchPortal.Plugin.AudioMonitor
                     gradient.InterpolationColors = new ColorBlend
                     {
                         Positions = new[] { 0.00f, 0.10f, 0.20f, 1.00f },
-                        Colors = new[] { Color.DarkRed, Color.Yellow, Color.LightGreen, Color.LightGreen }
+                        Colors = new[] { _appSettings.ColorBarMeterHigh, _appSettings.ColorBarMeterMid, _appSettings.ColorBarMeterLow, _appSettings.ColorBarMeterLow }
                     };
                 }
                 else
@@ -97,7 +110,7 @@ namespace TouchPortal.Plugin.AudioMonitor
                     gradient.InterpolationColors = new ColorBlend
                     {
                         Positions = new[] { 0.00f, 0.10f, 0.10f, 0.20f, 0.20f, 1.00f },
-                        Colors = new[] { Color.DarkRed, Color.DarkRed, Color.Yellow, Color.Yellow, Color.LightGreen, Color.LightGreen }
+                        Colors = new[] { _appSettings.ColorBarMeterHigh, _appSettings.ColorBarMeterHigh, _appSettings.ColorBarMeterMid, _appSettings.ColorBarMeterMid, _appSettings.ColorBarMeterLow, _appSettings.ColorBarMeterLow }
                     };
                 }
 
@@ -107,7 +120,7 @@ namespace TouchPortal.Plugin.AudioMonitor
 
         private void ClearBackground(Graphics graphics, int width, int yPosition)
         {
-            using (var background = new SolidBrush(Color.DarkGray))
+            using (var background = new SolidBrush(_appSettings.ColorBackground))
             {
                 var backgroundRect = new Rectangle(0, 0, width, yPosition);
                 graphics.FillRectangle(background, backgroundRect);
@@ -116,27 +129,35 @@ namespace TouchPortal.Plugin.AudioMonitor
 
         private void DrawGrids(Graphics graphics)
         {
-            for (var y = 0; y < _appSettings.Height; y += _appSettings.Height / 10)
+            using (var pen = new Pen(_appSettings.ColorOverlay))
             {
-                graphics.DrawLine(new Pen(_darkGrey), 0, y, _appSettings.Width, y);
+                var height = _appSettings.Height;
+                for (var y = 0; y < height; y += height / 10)
+                {
+                    graphics.DrawLine(pen, 0, y, _appSettings.Width, y);
+                }
             }
         }
 
         private void DrawLine(Graphics graphics, int yPosition, Color color)
         {
-            if (yPosition < _appSettings.Height)
+            using (var pen = new Pen(color, 2))
             {
-                graphics.DrawLine(new Pen(color, 2), 0, yPosition, _appSettings.Width, yPosition);
+                if (yPosition < _appSettings.Height)
+                {
+                    graphics.DrawLine(pen, 0, yPosition, _appSettings.Width, yPosition);
+                }
             }
         }
 
-        private void DrawBorder(Graphics graphics, Rectangle rectangle, int yPosition)
+        private void DrawBorder(Graphics graphics, Rectangle rectangle)
         {
-            var color = yPosition < 10 ? Color.Red
-                      : yPosition < 20 ? Color.Green
-                      : _darkGrey;
+            using (var pen = new Pen(_appSettings.ColorOverlay, 2))
+            {
+                pen.Alignment = PenAlignment.Inset;
 
-            graphics.DrawRectangle(new Pen(color, 2) { Alignment = PenAlignment.Inset }, rectangle);
+                graphics.DrawRectangle(pen, rectangle);
+            }
         }
 
         private void DrawText(Graphics graphics, Rectangle rectangle, string text)
@@ -144,16 +165,19 @@ namespace TouchPortal.Plugin.AudioMonitor
             graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
             graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
 
-            var font = new Font("Tahoma", 10, FontStyle.Bold);
-            var color = Brushes.White;
+            using (var font = new Font("Tahoma", 10, FontStyle.Bold))
+            using (var brush = new SolidBrush(Color.FromArgb(0xB0, 0x00, 0x00, 0x00)))
+            {
+                var color = Brushes.White;
 
-            var measure = graphics.MeasureString(text, font);
-            var xPosition = (rectangle.Width - (int)measure.Width) / 2;
-            var yPosition = rectangle.Height - (int)measure.Height;
-            var textRectangle = new RectangleF(new Point(xPosition, yPosition), measure);
+                var measure = graphics.MeasureString(text, font);
+                var xPosition = (rectangle.Width - (int)measure.Width) / 2;
+                var yPosition = rectangle.Height - (int)measure.Height;
+                var textRectangle = new RectangleF(new Point(xPosition, yPosition), measure);
 
-            graphics.FillRectangle(new SolidBrush(Color.FromArgb(0xB0, 0x00, 0x00, 0x00)), textRectangle);
-            graphics.DrawString(text, font, color, textRectangle);
+                graphics.FillRectangle(brush, textRectangle);
+                graphics.DrawString(text, font, color, textRectangle);
+            }
         }
     }
 }
