@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System;
+using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
@@ -9,30 +10,50 @@ namespace TouchPortal.Plugin.AudioMonitor
     public class MonitorGraphics
     {
         private readonly AppConfiguration _appSettings;
-        private readonly int _dbMin;
+        private readonly int _dbMin = -60;
         
-        public MonitorGraphics(AppConfiguration appSettings, int dbMin)
+        public MonitorGraphics(AppConfiguration appSettings)
         {
             _appSettings = appSettings;
-            _dbMin = dbMin;
         }
-        
+
+        private double DecibelWindow(double decibel)
+        {
+            if (decibel > 0)
+                return 0;
+
+            if (decibel < _dbMin)
+                return _dbMin;
+            
+            return decibel;
+        }
+
         private int DecibelToPosition(double decibel)
         {
             var percentage = decibel / _dbMin;
             var position = _appSettings.Height * percentage;
+
             return (int)position;
         }
 
         public byte[] DrawPng(string text)
             => DrawPng(text, _dbMin, _dbMin, _dbMin);
 
-        public byte[] DrawPng(string text, double decibel, double prevDecibel, double maxDecibel)
+        public byte[] DrawPng(double decibel, double prevDecibel, double maxDecibel)
         {
+            decibel = DecibelWindow(decibel);
+            prevDecibel = DecibelWindow(prevDecibel);
+            maxDecibel = DecibelWindow(maxDecibel);
+
             var value = DecibelToPosition(decibel);
             var shortValue = DecibelToPosition(prevDecibel);
             var longValue = DecibelToPosition(maxDecibel);
+            
+            return DrawPng($"{decibel}db", value, shortValue, longValue);
+        }
 
+        private byte[] DrawPng(string text, int value, int shortValue, int longValue)
+        {
             using (var bitmap = new Bitmap(_appSettings.Width, _appSettings.Height))
             using (var graphics = Graphics.FromImage(bitmap))
             {

@@ -29,14 +29,13 @@ namespace TouchPortal.Plugin.AudioMonitor
 
         public AudioMonitorPlugin(AppConfiguration configuration)
         {
-            var dbMin = -60;
-
             _client = TouchPortalFactory.CreateClient(this);
 
-            _windowsMultimediaDevice = new WindowsMultimediaDevice(dbMin, this);
+            _windowsMultimediaDevice = new WindowsMultimediaDevice(this);
             
-            _monitorGraphics = new MonitorGraphics(configuration, dbMin);
-            _valueCache = new ValueCache(dbMin);
+            _monitorGraphics = new MonitorGraphics(configuration);
+            
+            _valueCache = new ValueCache();
         }
 
         public void Run()
@@ -81,7 +80,7 @@ namespace TouchPortal.Plugin.AudioMonitor
         {
             _valueCache.SetValue(decibel);
 
-            var image = _monitorGraphics.DrawPng($"{decibel}db", decibel, _valueCache.PrevDecibel, _valueCache.MaxDecibel);
+            var image = _monitorGraphics.DrawPng(decibel, _valueCache.PrevDecibel, _valueCache.MaxDecibel);
 
             _client.StateUpdate("oddbear.audio.monitor.icon", Convert.ToBase64String(image));
         }

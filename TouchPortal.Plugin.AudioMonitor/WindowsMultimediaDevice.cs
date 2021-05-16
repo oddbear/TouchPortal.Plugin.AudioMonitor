@@ -6,7 +6,6 @@ namespace TouchPortal.Plugin.AudioMonitor
 {
     public class WindowsMultimediaDevice : IDisposable
     {
-        private readonly int _dbMin;
         private readonly IPluginCallbacks _callbacks;
         
         private MMDevice _mmDevice;
@@ -15,12 +14,8 @@ namespace TouchPortal.Plugin.AudioMonitor
 
         public bool IsMonitoring { get; private set; }
 
-        public WindowsMultimediaDevice(int dbMin, IPluginCallbacks callbacks)
+        public WindowsMultimediaDevice(IPluginCallbacks callbacks)
         {
-            if (dbMin > 0)
-                throw new ArgumentException("dbMin must be a negative number, -60 could be a good number (decibels).", nameof(dbMin));
-            
-            _dbMin = dbMin;
             _callbacks = callbacks ?? throw new ArgumentNullException(nameof(callbacks));
 
             ClearMonitoring();
@@ -110,8 +105,6 @@ namespace TouchPortal.Plugin.AudioMonitor
                     
                     var decibel = Math.Log10(masterPeakValue) * 20;
                     decibel = Math.Round(decibel);
-                    decibel = Math.Max(decibel, _dbMin);
-                    decibel = Math.Min(decibel, 0);
                     
                     _callbacks.MonitoringCallback(decibel);
 
