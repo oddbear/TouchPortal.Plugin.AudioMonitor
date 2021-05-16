@@ -41,7 +41,7 @@ namespace TouchPortal.Plugin.AudioMonitor
 
         public byte[] DrawPng(double decibel, double prevDecibel, double maxDecibel)
         {
-            var text = decibel < -60
+            var text = decibel < _dbMin
                 ? "low"
                 : $"{decibel}db";
 
