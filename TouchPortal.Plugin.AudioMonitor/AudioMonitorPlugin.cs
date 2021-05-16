@@ -27,13 +27,13 @@ namespace TouchPortal.Plugin.AudioMonitor
         private readonly MonitorGraphics _monitorGraphics;
         private readonly ValueCache _valueCache;
 
-        public AudioMonitorPlugin(AppConfiguration configuration)
+        public AudioMonitorPlugin(AppSettings appSettings)
         {
             _client = TouchPortalFactory.CreateClient(this);
 
             _windowsMultimediaDevice = new WindowsMultimediaDevice(this);
             
-            _monitorGraphics = new MonitorGraphics(configuration);
+            _monitorGraphics = new MonitorGraphics(appSettings);
             
             _valueCache = new ValueCache();
         }

@@ -5,7 +5,7 @@ using System.IO;
 
 namespace TouchPortal.Plugin.AudioMonitor.Settings
 {
-    public class AppConfiguration
+    public class AppSettings
     {
         public int Width
         {
@@ -25,25 +25,43 @@ namespace TouchPortal.Plugin.AudioMonitor.Settings
             set => SetValue(nameof(ColorBackground), ColorTranslator.ToHtml(value));
         }
 
-        public Color ColorMax
+        public Color ColorLineMax
         {
-            get => GetValue(nameof(ColorMax), Color.Red);
-            set => SetValue(nameof(ColorMax), ColorTranslator.ToHtml(value));
+            get => GetValue(nameof(ColorLineMax), Color.Red);
+            set => SetValue(nameof(ColorLineMax), ColorTranslator.ToHtml(value));
         }
 
-        public Color ColorPrev
+        public Color ColorLinePrev
         {
-            get => GetValue(nameof(ColorPrev), Color.Blue);
-            set => SetValue(nameof(ColorPrev), ColorTranslator.ToHtml(value));
+            get => GetValue(nameof(ColorLinePrev), Color.Blue);
+            set => SetValue(nameof(ColorLinePrev), ColorTranslator.ToHtml(value));
         }
 
-        public Color ColorLines
+        public Color ColorOverlay
         {
-            get => GetValue(nameof(ColorLines), Color.FromArgb(0x30, 0x30, 0x30));
-            set => SetValue(nameof(ColorLines), ColorTranslator.ToHtml(value));
+            get => GetValue(nameof(ColorOverlay), Color.FromArgb(0x30, 0x30, 0x30));
+            set => SetValue(nameof(ColorOverlay), ColorTranslator.ToHtml(value));
         }
 
-        public AppConfiguration()
+        public Color ColorBarMeterLow
+        {
+            get => GetValue(nameof(ColorBarMeterLow), Color.LightGreen);
+            set => SetValue(nameof(ColorBarMeterLow), ColorTranslator.ToHtml(value));
+        }
+
+        public Color ColorBarMeterMid
+        {
+            get => GetValue(nameof(ColorBarMeterMid), Color.Yellow);
+            set => SetValue(nameof(ColorBarMeterMid), ColorTranslator.ToHtml(value));
+        }
+
+        public Color ColorBarMeterHigh
+        {
+            get => GetValue(nameof(ColorBarMeterHigh), Color.DarkRed);
+            set => SetValue(nameof(ColorBarMeterHigh), ColorTranslator.ToHtml(value));
+        }
+
+        public AppSettings()
         {
             _configuration = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
 
@@ -127,8 +145,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Settings
                     keyValue.Value = stringValue;
 
                 appSettings.SectionInformation.ForceSave = true;
-
-                //TODO: What if the file is locked etc.?
+                
                 configuration.Save(ConfigurationSaveMode.Modified);
             }
             catch (Exception e)

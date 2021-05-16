@@ -9,10 +9,10 @@ namespace TouchPortal.Plugin.AudioMonitor
 {
     public class MonitorGraphics
     {
-        private readonly AppConfiguration _appSettings;
+        private readonly AppSettings _appSettings;
         private readonly int _dbMin = -60;
         
-        public MonitorGraphics(AppConfiguration appSettings)
+        public MonitorGraphics(AppSettings appSettings)
         {
             _appSettings = appSettings;
         }
@@ -41,6 +41,10 @@ namespace TouchPortal.Plugin.AudioMonitor
 
         public byte[] DrawPng(double decibel, double prevDecibel, double maxDecibel)
         {
+            var text = decibel < -60
+                ? "low"
+                : $"{decibel}db";
+
             decibel = DecibelWindow(decibel);
             prevDecibel = DecibelWindow(prevDecibel);
             maxDecibel = DecibelWindow(maxDecibel);
@@ -48,8 +52,8 @@ namespace TouchPortal.Plugin.AudioMonitor
             var value = DecibelToPosition(decibel);
             var shortValue = DecibelToPosition(prevDecibel);
             var longValue = DecibelToPosition(maxDecibel);
-            
-            return DrawPng($"{decibel}db", value, shortValue, longValue);
+
+            return DrawPng(text, value, shortValue, longValue);
         }
 
         private byte[] DrawPng(string text, int value, int shortValue, int longValue)
@@ -66,14 +70,13 @@ namespace TouchPortal.Plugin.AudioMonitor
                 ClearBackground(graphics, _appSettings.Width, value);
 
                 //10x Grid:
-                //TODO: Optimize this one, it uses about 2% of the CPU.
                 DrawGrids(graphics);
 
                 //Set short time value:
-                DrawLine(graphics, shortValue, _appSettings.ColorPrev);
+                DrawLine(graphics, shortValue, _appSettings.ColorLinePrev);
 
                 //Set all time value:
-                DrawLine(graphics, longValue, _appSettings.ColorMax);
+                DrawLine(graphics, longValue, _appSettings.ColorLineMax);
 
                 //Text:
                 DrawText(graphics, rectangle, text);
@@ -99,7 +102,7 @@ namespace TouchPortal.Plugin.AudioMonitor
                     gradient.InterpolationColors = new ColorBlend
                     {
                         Positions = new[] { 0.00f, 0.10f, 0.20f, 1.00f },
-                        Colors = new[] { Color.DarkRed, Color.Yellow, Color.LightGreen, Color.LightGreen }
+                        Colors = new[] { _appSettings.ColorBarMeterHigh, _appSettings.ColorBarMeterMid, _appSettings.ColorBarMeterLow, _appSettings.ColorBarMeterLow }
                     };
                 }
                 else
@@ -107,7 +110,7 @@ namespace TouchPortal.Plugin.AudioMonitor
                     gradient.InterpolationColors = new ColorBlend
                     {
                         Positions = new[] { 0.00f, 0.10f, 0.10f, 0.20f, 0.20f, 1.00f },
-                        Colors = new[] { Color.DarkRed, Color.DarkRed, Color.Yellow, Color.Yellow, Color.LightGreen, Color.LightGreen }
+                        Colors = new[] { _appSettings.ColorBarMeterHigh, _appSettings.ColorBarMeterHigh, _appSettings.ColorBarMeterMid, _appSettings.ColorBarMeterMid, _appSettings.ColorBarMeterLow, _appSettings.ColorBarMeterLow }
                     };
                 }
 
@@ -126,7 +129,7 @@ namespace TouchPortal.Plugin.AudioMonitor
 
         private void DrawGrids(Graphics graphics)
         {
-            using (var pen = new Pen(_appSettings.ColorLines))
+            using (var pen = new Pen(_appSettings.ColorOverlay))
             {
                 var height = _appSettings.Height;
                 for (var y = 0; y < height; y += height / 10)
@@ -138,15 +141,23 @@ namespace TouchPortal.Plugin.AudioMonitor
 
         private void DrawLine(Graphics graphics, int yPosition, Color color)
         {
-            if (yPosition < _appSettings.Height)
+            using (var pen = new Pen(color, 2))
             {
-                graphics.DrawLine(new Pen(color, 2), 0, yPosition, _appSettings.Width, yPosition);
+                if (yPosition < _appSettings.Height)
+                {
+                    graphics.DrawLine(pen, 0, yPosition, _appSettings.Width, yPosition);
+                }
             }
         }
 
         private void DrawBorder(Graphics graphics, Rectangle rectangle)
         {
-            graphics.DrawRectangle(new Pen(_appSettings.ColorLines, 2) { Alignment = PenAlignment.Inset }, rectangle);
+            using (var pen = new Pen(_appSettings.ColorOverlay, 2))
+            {
+                pen.Alignment = PenAlignment.Inset;
+
+                graphics.DrawRectangle(pen, rectangle);
+            }
         }
 
         private void DrawText(Graphics graphics, Rectangle rectangle, string text)
@@ -154,16 +165,19 @@ namespace TouchPortal.Plugin.AudioMonitor
             graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
             graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
 
-            var font = new Font("Tahoma", 10, FontStyle.Bold);
-            var color = Brushes.White;
+            using (var font = new Font("Tahoma", 10, FontStyle.Bold))
+            using (var brush = new SolidBrush(Color.FromArgb(0xB0, 0x00, 0x00, 0x00)))
+            {
+                var color = Brushes.White;
 
-            var measure = graphics.MeasureString(text, font);
-            var xPosition = (rectangle.Width - (int)measure.Width) / 2;
-            var yPosition = rectangle.Height - (int)measure.Height;
-            var textRectangle = new RectangleF(new Point(xPosition, yPosition), measure);
+                var measure = graphics.MeasureString(text, font);
+                var xPosition = (rectangle.Width - (int)measure.Width) / 2;
+                var yPosition = rectangle.Height - (int)measure.Height;
+                var textRectangle = new RectangleF(new Point(xPosition, yPosition), measure);
 
-            graphics.FillRectangle(new SolidBrush(Color.FromArgb(0xB0, 0x00, 0x00, 0x00)), textRectangle);
-            graphics.DrawString(text, font, color, textRectangle);
+                graphics.FillRectangle(brush, textRectangle);
+                graphics.DrawString(text, font, color, textRectangle);
+            }
         }
     }
 }

@@ -19,7 +19,7 @@ namespace TouchPortal.Plugin.AudioMonitor
             var services = new ServiceCollection();
 
             services.AddSingleton<AudioMonitorPlugin>();
-            services.AddSingleton<AppConfiguration>();
+            services.AddSingleton<AppSettings>();
 
             return services.BuildServiceProvider(true);
         }
