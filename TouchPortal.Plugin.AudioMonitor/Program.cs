@@ -1,6 +1,6 @@
 ﻿using System;
 using Microsoft.Extensions.DependencyInjection;
-using TouchPortal.Plugin.AudioMonitor.Configuration;
+using TouchPortal.Plugin.AudioMonitor.Settings;
 
 namespace TouchPortal.Plugin.AudioMonitor
 {

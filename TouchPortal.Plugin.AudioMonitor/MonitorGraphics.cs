@@ -3,7 +3,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
-using TouchPortal.Plugin.AudioMonitor.Configuration;
+using TouchPortal.Plugin.AudioMonitor.Settings;
 
 namespace TouchPortal.Plugin.AudioMonitor
 {
@@ -66,6 +66,7 @@ namespace TouchPortal.Plugin.AudioMonitor
                 ClearBackground(graphics, _appSettings.Width, value);
 
                 //10x Grid:
+                //TODO: Optimize this one, it uses about 2% of the CPU.
                 DrawGrids(graphics);
 
                 //Set short time value:
@@ -125,9 +126,13 @@ namespace TouchPortal.Plugin.AudioMonitor
 
         private void DrawGrids(Graphics graphics)
         {
-            for (var y = 0; y < _appSettings.Height; y += _appSettings.Height / 10)
+            using (var pen = new Pen(_appSettings.ColorLines))
             {
-                graphics.DrawLine(new Pen(_appSettings.ColorLines), 0, y, _appSettings.Width, y);
+                var height = _appSettings.Height;
+                for (var y = 0; y < height; y += height / 10)
+                {
+                    graphics.DrawLine(pen, 0, y, _appSettings.Width, y);
+                }
             }
         }
 

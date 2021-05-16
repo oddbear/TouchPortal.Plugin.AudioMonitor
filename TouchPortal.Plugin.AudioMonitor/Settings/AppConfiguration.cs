@@ -3,7 +3,7 @@ using System.Configuration;
 using System.Drawing;
 using System.IO;
 
-namespace TouchPortal.Plugin.AudioMonitor.Configuration
+namespace TouchPortal.Plugin.AudioMonitor.Settings
 {
     public class AppConfiguration
     {
@@ -43,8 +43,48 @@ namespace TouchPortal.Plugin.AudioMonitor.Configuration
             set => SetValue(nameof(ColorLines), ColorTranslator.ToHtml(value));
         }
 
-        private System.Configuration.Configuration _prevConfiguration;
+        public AppConfiguration()
+        {
+            _configuration = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+
+            _configWatcher = new FileSystemWatcher
+            {
+                Path = Path.GetDirectoryName(_configuration.FilePath),
+                Filter = Path.GetFileName(_configuration.FilePath),
+                EnableRaisingEvents = true
+            };
+
+            //This will load twice, so just mark as "dirty":
+            _configWatcher.Changed += (sender, args) => _configHasChanged = true;
+        }
         
+        private readonly FileSystemWatcher _configWatcher;
+        private bool _configHasChanged;
+        private Configuration _configuration;
+
+        private Configuration GetConfiguration()
+        {
+            if (_configHasChanged)
+            {
+                //Will reload after save, but that is OK.
+                try
+                {
+                    //Reload configuration:
+                    _configuration = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                    //Config is read OK, so no need to read it again before it is marked as "dirty" again:
+                    _configHasChanged = false;
+                }
+                catch (ConfigurationErrorsException e)
+                    when (e.InnerException is IOException)
+                {
+                    //There is a lock on the file and we cannot read from it.
+                    //Try using the old configuration instead.
+                }
+            }
+
+            return _configuration;
+        }
+
         public TType GetValue<TType>(string key, TType defaultValue)
         {
             var stringValue = GetValue(key);
@@ -57,21 +97,8 @@ namespace TouchPortal.Plugin.AudioMonitor.Configuration
         {
             try
             {
-                //TODO: Should we use a file watcher here instead?
-                ConfigurationManager.RefreshSection("appSettings");
-                var configuration = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-                _prevConfiguration = configuration;
-            }
-            catch (ConfigurationErrorsException e)
-                when (e.InnerException is IOException)
-            {
-                //There is a lock on the file and we cannot read from it.
-                //Try using the old configuration instead.
-            }
-
-            try
-            {
-                var keyValue = _prevConfiguration.AppSettings.Settings[key];
+                var configuration = GetConfiguration();
+                var keyValue = configuration.AppSettings.Settings[key];
                 if (keyValue is null)
                     return null;
 
@@ -88,7 +115,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Configuration
         {
             try
             {
-                var configuration = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                var configuration = GetConfiguration();
                 var appSettings = configuration.AppSettings;
                 var setting = appSettings.Settings;
                 var keyValue = setting[key];

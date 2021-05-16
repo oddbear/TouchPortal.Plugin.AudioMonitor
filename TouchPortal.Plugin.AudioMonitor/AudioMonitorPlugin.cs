@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using TouchPortal.Plugin.AudioMonitor.Configuration;
+using TouchPortal.Plugin.AudioMonitor.Settings;
 using TouchPortalSDK;
 using TouchPortalSDK.Interfaces;
 using TouchPortalSDK.Messages.Events;
@@ -75,11 +75,11 @@ namespace TouchPortal.Plugin.AudioMonitor
         {
             _client.StateUpdate("oddbear.audio.monitor.device", deviceName);
         }
-
+        
         public void MonitoringCallback(double decibel)
         {
             _valueCache.SetValue(decibel);
-
+            
             var image = _monitorGraphics.DrawPng(decibel, _valueCache.PrevDecibel, _valueCache.MaxDecibel);
 
             _client.StateUpdate("oddbear.audio.monitor.icon", Convert.ToBase64String(image));
