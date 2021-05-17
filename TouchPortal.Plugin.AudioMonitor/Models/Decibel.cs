@@ -56,6 +56,9 @@ namespace TouchPortal.Plugin.AudioMonitor.Models
         public override int GetHashCode()
             => Value.GetHashCode();
 
+        public override string ToString()
+            => $"{Value}db";
+
         #endregion
     }
 }
