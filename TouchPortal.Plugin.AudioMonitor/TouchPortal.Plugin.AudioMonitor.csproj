@@ -9,9 +9,8 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="5.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="5.0.0" />
     <PackageReference Include="NAudio.Wasapi" Version="2.0.0" />
-    <PackageReference Include="TouchPortalSDK" Version="0.23.1-beta-001" />
+    <PackageReference Include="TouchPortalSDK" Version="0.23.1-beta-002" />
   </ItemGroup>
 
   <ItemGroup>
