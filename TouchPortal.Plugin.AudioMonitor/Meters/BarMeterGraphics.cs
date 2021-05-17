@@ -1,26 +1,29 @@
-﻿using System;
-using System.Drawing;
+﻿using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using TouchPortal.Plugin.AudioMonitor.Models;
 using TouchPortal.Plugin.AudioMonitor.Settings;
 
-namespace TouchPortal.Plugin.AudioMonitor
+namespace TouchPortal.Plugin.AudioMonitor.Meters
 {
     public class MonitorGraphics
     {
         private readonly AppSettings _appSettings;
-        private readonly int _dbMin = -60;
-        
+        private readonly Decibel _dbMin;
+        private readonly Decibel _dbMax;
+
         public MonitorGraphics(AppSettings appSettings)
         {
             _appSettings = appSettings;
+            _dbMin = Decibel.FromDecibelValue(-60);
+            _dbMax = Decibel.FromDecibelValue(0);
         }
 
-        private double DecibelWindow(double decibel)
+        private Decibel DecibelWindow(Decibel decibel)
         {
-            if (decibel > 0)
-                return 0;
+            if (decibel > _dbMax)
+                return _dbMax;
 
             if (decibel < _dbMin)
                 return _dbMin;
@@ -28,35 +31,35 @@ namespace TouchPortal.Plugin.AudioMonitor
             return decibel;
         }
 
-        private int DecibelToPosition(double decibel)
+        private int DecibelToPosition(Decibel decibel)
         {
-            var percentage = decibel / _dbMin;
+            var percentage = decibel.Value / _dbMin.Value;
             var position = _appSettings.Height * percentage;
 
             return (int)position;
         }
 
         public byte[] DrawPng(string text)
-            => DrawPng(text, _dbMin, _dbMin, _dbMin);
+            => DrawPng(text, _appSettings.Height, _appSettings.Height, _appSettings.Height);
 
-        public byte[] DrawPng(double decibel, double prevDecibel, double maxDecibel)
+        public byte[] DrawPng(BarMeter barMeter)
         {
-            var text = decibel < _dbMin
+            var text = barMeter.Peak < _dbMin
                 ? "low"
-                : $"{decibel}db";
+                : $"{barMeter.Peak}db";
 
-            decibel = DecibelWindow(decibel);
-            prevDecibel = DecibelWindow(prevDecibel);
-            maxDecibel = DecibelWindow(maxDecibel);
+            var peak = DecibelWindow(barMeter.Peak);
+            var peakHold = DecibelWindow(barMeter.PeakHold);
+            var peakMax = DecibelWindow(barMeter.PeakMax);
 
-            var value = DecibelToPosition(decibel);
-            var shortValue = DecibelToPosition(prevDecibel);
-            var longValue = DecibelToPosition(maxDecibel);
+            var peakPos = DecibelToPosition(peak);
+            var peakHoldPos = DecibelToPosition(peakHold);
+            var peakMaxPos = DecibelToPosition(peakMax);
 
-            return DrawPng(text, value, shortValue, longValue);
+            return DrawPng(text, peakPos, peakHoldPos, peakMaxPos);
         }
 
-        private byte[] DrawPng(string text, int value, int shortValue, int longValue)
+        private byte[] DrawPng(string text, int peakPos, int peakHoldPos, int peakMaxPos)
         {
             using (var bitmap = new Bitmap(_appSettings.Width, _appSettings.Height))
             using (var graphics = Graphics.FromImage(bitmap))
@@ -67,16 +70,16 @@ namespace TouchPortal.Plugin.AudioMonitor
                 FillBackground(graphics, rectangle);
 
                 //Clear background (ex. 90% volume, clear top 10%):
-                ClearBackground(graphics, _appSettings.Width, value);
+                ClearBackground(graphics, _appSettings.Width, peakPos);
 
                 //10x Grid:
                 DrawGrids(graphics);
 
                 //Set short time value:
-                DrawLine(graphics, shortValue, _appSettings.ColorLinePrev);
+                DrawLine(graphics, peakHoldPos, _appSettings.ColorPeakHold);
 
                 //Set all time value:
-                DrawLine(graphics, longValue, _appSettings.ColorLineMax);
+                DrawLine(graphics, peakMaxPos, _appSettings.ColorPeakMax);
 
                 //Text:
                 DrawText(graphics, rectangle, text);

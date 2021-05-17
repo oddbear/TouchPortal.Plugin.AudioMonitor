@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Threading;
 using NAudio.CoreAudioApi;
+using TouchPortal.Plugin.AudioMonitor.Models;
 
-namespace TouchPortal.Plugin.AudioMonitor
+namespace TouchPortal.Plugin.AudioMonitor.Capture
 {
     public class WindowsMultimediaDevice
     {
@@ -108,8 +109,7 @@ namespace TouchPortal.Plugin.AudioMonitor
                 {
                     var masterPeakValue = _mmDevice.AudioMeterInformation.MasterPeakValue;
                     
-                    var decibel = Math.Log10(masterPeakValue) * 20;
-                    decibel = Math.Round(decibel);
+                    var decibel = Decibel.FromLinearPercentage(masterPeakValue);
                     
                     _callbacks.MonitoringCallback(decibel);
 

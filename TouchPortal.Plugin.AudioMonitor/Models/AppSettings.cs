@@ -25,16 +25,16 @@ namespace TouchPortal.Plugin.AudioMonitor.Settings
             set => SetValue(nameof(ColorBackground), ColorTranslator.ToHtml(value));
         }
 
-        public Color ColorLineMax
+        public Color ColorPeakMax
         {
-            get => GetValue(nameof(ColorLineMax), Color.Red);
-            set => SetValue(nameof(ColorLineMax), ColorTranslator.ToHtml(value));
+            get => GetValue(nameof(ColorPeakMax), Color.Red);
+            set => SetValue(nameof(ColorPeakMax), ColorTranslator.ToHtml(value));
         }
 
-        public Color ColorLinePrev
+        public Color ColorPeakHold
         {
-            get => GetValue(nameof(ColorLinePrev), Color.Blue);
-            set => SetValue(nameof(ColorLinePrev), ColorTranslator.ToHtml(value));
+            get => GetValue(nameof(ColorPeakHold), Color.Blue);
+            set => SetValue(nameof(ColorPeakHold), ColorTranslator.ToHtml(value));
         }
 
         public Color ColorOverlay
