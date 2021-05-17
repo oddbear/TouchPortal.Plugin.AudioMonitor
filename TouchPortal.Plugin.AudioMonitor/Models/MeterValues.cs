@@ -10,6 +10,15 @@ namespace TouchPortal.Plugin.AudioMonitor.Models
         public Decibel PeakHold { get; private set; }
         public Decibel Peak { get; private set; }
 
+        public MeterValues()
+        {
+            //Set defaults:
+            _prevUpdated = DateTime.MinValue;
+            PeakMax = Decibel.Empty;
+            PeakHold = Decibel.Empty;
+            Peak = Decibel.Empty;
+        }
+
         public void SetValue(Decibel decibel)
         {
             //Hold Duration:
@@ -28,12 +37,6 @@ namespace TouchPortal.Plugin.AudioMonitor.Models
             }
 
             Peak = decibel;
-        }
-
-        public void ResetValues()
-        {
-            PeakHold = Decibel.Empty;
-            PeakMax = Decibel.Empty;
         }
     }
 }

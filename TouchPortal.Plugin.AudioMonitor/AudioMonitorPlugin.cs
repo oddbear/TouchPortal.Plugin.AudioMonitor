@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using NAudio.CoreAudioApi;
 using TouchPortal.Plugin.AudioMonitor.Capture;
 using TouchPortal.Plugin.AudioMonitor.Meters;
 using TouchPortal.Plugin.AudioMonitor.Models;
@@ -13,12 +13,6 @@ using TouchPortalSDK.Messages.Models;
 
 namespace TouchPortal.Plugin.AudioMonitor
 {
-    public interface IPluginCallbacks
-    {
-        void MultimediaDeviceUpdateCallback(string deviceName);
-        void MonitoringCallback(Decibel decibel);
-    }
-
     public class AudioMonitorPlugin : ITouchPortalEventHandler, IPluginCallbacks
     {
         private readonly ILogger<AudioMonitorPlugin> _logger;
@@ -31,7 +25,6 @@ namespace TouchPortal.Plugin.AudioMonitor
         private readonly ITouchPortalClient _client;
         private readonly WindowsMultimediaDevice _windowsMultimediaDevice;
         private readonly BarMeterGraphics _barMeterGraphics;
-        private readonly MeterValues _meterValues;
 
         public AudioMonitorPlugin(ILogger<AudioMonitorPlugin> logger,
                                   ITouchPortalClientFactory clientFactory,
@@ -42,37 +35,38 @@ namespace TouchPortal.Plugin.AudioMonitor
             _barMeterGraphics = barMeterGraphics;
 
             _client = clientFactory.Create(this);
-            
             _windowsMultimediaDevice = windowsMultimediaDeviceFactory.Create(this);
-            
-            _meterValues = new MeterValues();
         }
 
         public void Run()
-            => _client.Connect();
+        {
+            _client.Connect();
+            StartMonitoring();
+        }
 
         private void SetSettings(IEnumerable<Setting> settings)
         {
-            _device = settings
-                .SingleOrDefault(setting => setting.Name == "Device Name")?.Value;
-
-            StartMonitoring();
+            //Nothing to see here.
         }
 
         private void StartMonitoring()
         {
-            var deviceUpdated = _windowsMultimediaDevice.SetMultimediaDevice(_device, _deviceOffset);
-            if (deviceUpdated)
-            {
-                _meterValues.ResetValues();
-                _windowsMultimediaDevice.StartMonitoring();
-            }
-            else
-            {
-                var image = _barMeterGraphics.DrawPng("no device");
-                _client.StateUpdate("oddbear.audio.monitor.icon", Convert.ToBase64String(image));
-                _client.StateUpdate("oddbear.audio.monitor.device", $"no device found: '{_device}'");
-            }
+            _windowsMultimediaDevice.AddMultimediaDevice("Chat Mic (TC-Helicon GoXLR)", DataFlow.Capture);
+            _windowsMultimediaDevice.AddMultimediaDevice("Microphone (NVIDIA Broadcast)", DataFlow.Capture);
+            _windowsMultimediaDevice.AddMultimediaDevice("Music (TC-Helicon GoXLR)", DataFlow.Render);
+
+            //var deviceUpdated = _windowsMultimediaDevice.SetMultimediaDevice(_device, _deviceOffset);
+            //if (deviceUpdated)
+            //{
+            //    //_barMeter.ResetValues();
+            //    _windowsMultimediaDevice.StartMonitoring();
+            //}
+            //else
+            //{
+            //    var image = _monitorGraphics.DrawPng("no device");
+            //    _client.StateUpdate("oddbear.audio.monitor.icon", Convert.ToBase64String(image));
+            //    _client.StateUpdate("oddbear.audio.monitor.device", $"no device found: '{_device}'");
+            //}
         }
 
         void ITouchPortalEventHandler.OnInfoEvent(InfoEvent message)
@@ -86,11 +80,9 @@ namespace TouchPortal.Plugin.AudioMonitor
             _client.StateUpdate("oddbear.audio.monitor.device", deviceName);
         }
         
-        public void MonitoringCallback(Decibel decibel)
+        public void MonitoringCallback(MeterValues[] meters)
         {
-            _meterValues.SetValue(decibel);
-            
-            var image = _barMeterGraphics.DrawPng(_meterValues);
+            var image = _barMeterGraphics.DrawPng(meters);
 
             _client.StateUpdate("oddbear.audio.monitor.icon", Convert.ToBase64String(image));
         }
@@ -100,7 +92,8 @@ namespace TouchPortal.Plugin.AudioMonitor
             switch (message.ActionId)
             {
                 case "oddbear.audio.monitor.clear":
-                    _meterValues.ResetValues();
+                    //TODO: Make some update to this one.
+                    //_meterValues.ResetValues();
                     return;
                 case "oddbear.audio.monitor.toggle":
                     _windowsMultimediaDevice.ToggleMonitoring();

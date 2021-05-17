@@ -2,6 +2,7 @@
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TouchPortal.Plugin.AudioMonitor.Models;
@@ -45,51 +46,14 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
         }
 
         public byte[] DrawPng(string text)
-            => DrawPng(text, _meterSettings.CurrentValue.Height, _meterSettings.CurrentValue.Height, _meterSettings.CurrentValue.Height);
-
-        public byte[] DrawPng(MeterValues meterValues)
-        {
-            var text = meterValues.Peak >= _dbMin
-                ? meterValues.Peak.ToString()
-                : "low";
-
-            var peak = DecibelWindow(meterValues.Peak);
-            var peakHold = DecibelWindow(meterValues.PeakHold);
-            var peakMax = DecibelWindow(meterValues.PeakMax);
-
-            var peakPos = DecibelToPosition(peak);
-            var peakHoldPos = DecibelToPosition(peakHold);
-            var peakMaxPos = DecibelToPosition(peakMax);
-
-            return DrawPng(text, peakPos, peakHoldPos, peakMaxPos);
-        }
-
-        private byte[] DrawPng(string text, int peakPos, int peakHoldPos, int peakMaxPos)
         {
             var rectangle = new Rectangle(0, 0, _meterSettings.CurrentValue.Width, _meterSettings.CurrentValue.Height);
-
             using (var bitmap = new Bitmap(rectangle.Width, rectangle.Height))
             using (var graphics = Graphics.FromImage(bitmap))
             {
-                //Background (fill as 100% volume):
                 FillBackground(graphics, rectangle);
-
-                //Clear background (ex. 90% volume, clear top 10%):
-                FillBarMeter(graphics, rectangle, peakPos);
-
-                //10x Grid:
                 DrawGrids(graphics, rectangle);
-
-                //Set short time value:
-                DrawLine(graphics, rectangle, peakHoldPos, _meterSettings.CurrentValue.PeakHold);
-
-                //Set all time value:
-                DrawLine(graphics, rectangle, peakMaxPos, _meterSettings.CurrentValue.PeakMax);
-
-                //Text:
                 DrawText(graphics, rectangle, text);
-
-                //SafeZone indicator:
                 DrawBorder(graphics, rectangle);
 
                 using (var memoryStream = new MemoryStream())
@@ -101,6 +65,58 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
             }
         }
 
+        public byte[] DrawPng(MeterValues[] barMeters)
+        {
+            var defaultBarMeter = barMeters.FirstOrDefault();
+            if (defaultBarMeter is null)
+                return DrawPng("No Source");
+
+            var text = defaultBarMeter.Peak >= _dbMin
+                ? defaultBarMeter.Peak.ToString()
+                : "low";
+
+            var rectangle = new Rectangle(0, 0, _meterSettings.CurrentValue.Width, _meterSettings.CurrentValue.Height);
+
+            using (var bitmap = new Bitmap(rectangle.Width, rectangle.Height))
+            using (var graphics = Graphics.FromImage(bitmap))
+            {
+                FillBackground(graphics, rectangle);
+
+                var barMeterWidth = rectangle.Width / barMeters.Length;
+                for (int i = 0; i < barMeters.Length; i++)
+                {
+                    var barMeter = barMeters[i];
+                    var bounds = new Rectangle(barMeterWidth * i, 0, barMeterWidth, rectangle.Height);
+
+                    var peak = DecibelWindow(barMeter.Peak);
+                    var peakPos = DecibelToPosition(peak);
+                    FillBarMeter(graphics, bounds, peakPos);
+
+                    var peakHold = DecibelWindow(barMeter.PeakHold);
+                    var peakHoldPos = DecibelToPosition(peakHold);
+                    DrawHorizontalLine(graphics, bounds, peakHoldPos, _meterSettings.CurrentValue.PeakHold);
+
+                    var peakMax = DecibelWindow(barMeter.PeakMax);
+                    var peakMaxPos = DecibelToPosition(peakMax);
+                    DrawHorizontalLine(graphics, bounds, peakMaxPos, _meterSettings.CurrentValue.PeakMax);
+
+                    if (i > 0)
+                        DrawVerticalLine(graphics, bounds);
+                }
+
+                DrawGrids(graphics, rectangle);
+                DrawText(graphics, rectangle, text);
+                DrawBorder(graphics, rectangle);
+
+                using (var memoryStream = new MemoryStream())
+                {
+                    bitmap.Save(memoryStream, ImageFormat.Png);
+
+                    return memoryStream.ToArray();
+                }
+            }
+        }
+        
         private void FillBackground(Graphics graphics, Rectangle rectangle)
         {
             using (var background = new SolidBrush(_meterSettings.CurrentValue.Background))
@@ -120,7 +136,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
                 };
 
                 var y = rectangle.Height - peakValue;
-                var bounds = new Rectangle(0, y, rectangle.Width, peakValue);
+                var bounds = new Rectangle(rectangle.X, y, rectangle.Width, peakValue);
                 graphics.FillRectangle(gradient, bounds);
             }
         }
@@ -137,12 +153,22 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
             }
         }
 
-        private void DrawLine(Graphics graphics, Rectangle rectangle, int peakValue, Color color)
+        private void DrawVerticalLine(Graphics graphics, Rectangle rectangle)
+        {
+            using (var pen = new Pen(_meterSettings.CurrentValue.Overlay))
+            {
+                var x = rectangle.X;
+                graphics.DrawLine(pen, x, 0, x, rectangle.Height);
+            }
+        }
+
+        private void DrawHorizontalLine(Graphics graphics, Rectangle rectangle, int peakValue, Color color)
         {
             using (var pen = new Pen(color, 2))
             {
                 var y = rectangle.Height - peakValue;
-                graphics.DrawLine(pen, 0, y, rectangle.Width, y);
+                var x2 = rectangle.X + rectangle.Width;
+                graphics.DrawLine(pen, rectangle.X, y, x2, y);
             }
         }
 
