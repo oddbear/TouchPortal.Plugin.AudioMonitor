@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -7,6 +8,7 @@ using System.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TouchPortal.Plugin.AudioMonitor.Models;
+using TouchPortal.Plugin.AudioMonitor.Models.Enums;
 
 namespace TouchPortal.Plugin.AudioMonitor.Meters
 {
@@ -14,8 +16,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
     {
         private readonly ILogger<BarMeterGraphics> _logger;
         private readonly IOptionsMonitor<AppSettings.BarMeterSettings> _meterSettings;
-        private readonly Decibel _dbMin;
-        private readonly Decibel _dbMax;
+        private readonly double _dbMin;
 
         public BarMeterGraphics(ILogger<BarMeterGraphics> logger,
                                 IOptionsMonitor<AppSettings.BarMeterSettings> meterSettings)
@@ -23,27 +24,97 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
             _logger = logger;
             _meterSettings = meterSettings;
 
-            _dbMin = Decibel.FromDecibelValue(-60);
-            _dbMax = Decibel.FromDecibelValue(0);
+            _dbMin = -60;
+        }
+        
+        private double ToDecibel(float value)
+            => Math.Log10(value) * 20;
+
+        private int ToPosition(Scale scale, float value)
+        {
+            if (scale == Scale.Logarithmic)
+            {
+                var decibel = ToDecibel(value);
+                decibel = Math.Min(decibel, 0);
+                decibel = Math.Max(decibel, _dbMin);
+
+                var percentage = 1 - (decibel / _dbMin);
+
+                var position = _meterSettings.CurrentValue.Height * percentage;
+
+                return (int)position;
+            }
+            else
+            {
+                var position = _meterSettings.CurrentValue.Height * value;
+
+                return (int)position;
+            }
+        }
+        
+        private string DecibelText(float value)
+        {
+            var decibel = ToDecibel(value);
+            decibel = Math.Round(decibel);
+            return decibel >= _dbMin
+                ? $"{decibel}db"
+                : "low";
         }
 
-        private Decibel DecibelWindow(Decibel decibel)
+        private string LinearText(float value)
         {
-            if (decibel > _dbMax)
-                return _dbMax;
+            var volume = Math.Round(value * 100);
+            return $"{volume}%";
+        }
 
-            if (decibel < _dbMin)
-                return _dbMin;
+        public byte[] DrawPng(IReadOnlyList<MeterValues> barMeters)
+        {
+            var defaultBarMeter = barMeters.FirstOrDefault();
+            if (defaultBarMeter is null)
+                return DrawPng("No Source");
+
+            var text = defaultBarMeter.RequestedScale == Scale.Logarithmic
+                ? DecibelText(defaultBarMeter.Peak)
+                : LinearText(defaultBarMeter.Peak);
             
-            return decibel;
-        }
+            var rectangle = new Rectangle(0, 0, _meterSettings.CurrentValue.Width, _meterSettings.CurrentValue.Height);
 
-        private int DecibelToPosition(Decibel decibel)
-        {
-            var percentage = 1 - (decibel.Value / _dbMin.Value);
-            var position = _meterSettings.CurrentValue.Height * percentage;
+            using (var bitmap = new Bitmap(rectangle.Width, rectangle.Height))
+            using (var graphics = Graphics.FromImage(bitmap))
+            {
+                FillBackground(graphics, rectangle);
 
-            return (int)position;
+                var barMeterWidth = rectangle.Width / barMeters.Count;
+                for (int i = 0; i < barMeters.Count; i++)
+                {
+                    var barMeter = barMeters[i];
+                    var scale = barMeter.RequestedScale;
+                    var bounds = new Rectangle(barMeterWidth * i, 0, barMeterWidth, rectangle.Height);
+                    
+                    var peakPosition = ToPosition(scale, barMeter.Peak);
+                    FillBarMeter(graphics, bounds, peakPosition, scale);
+
+                    var peakHoldPosition = ToPosition(scale, barMeter.PeakHold);
+                    DrawHorizontalLine(graphics, bounds, peakHoldPosition, _meterSettings.CurrentValue.PeakHold);
+
+                    var peakMaxPosition = ToPosition(scale, barMeter.PeakMax);
+                    DrawHorizontalLine(graphics, bounds, peakMaxPosition, _meterSettings.CurrentValue.PeakMax);
+
+                    if (i > 0)
+                        DrawVerticalLine(graphics, bounds);
+                }
+
+                DrawGrids(graphics, rectangle);
+                DrawText(graphics, rectangle, text);
+                DrawBorder(graphics, rectangle);
+
+                using (var memoryStream = new MemoryStream())
+                {
+                    bitmap.Save(memoryStream, ImageFormat.Png);
+
+                    return memoryStream.ToArray();
+                }
+            }
         }
 
         public byte[] DrawPng(string text)
@@ -66,58 +137,6 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
             }
         }
 
-        public byte[] DrawPng(IReadOnlyList<MeterValues> barMeters)
-        {
-            var defaultBarMeter = barMeters.FirstOrDefault();
-            if (defaultBarMeter is null)
-                return DrawPng("No Source");
-
-            var text = defaultBarMeter.Peak >= _dbMin
-                ? defaultBarMeter.Peak.ToString()
-                : "low";
-
-            var rectangle = new Rectangle(0, 0, _meterSettings.CurrentValue.Width, _meterSettings.CurrentValue.Height);
-
-            using (var bitmap = new Bitmap(rectangle.Width, rectangle.Height))
-            using (var graphics = Graphics.FromImage(bitmap))
-            {
-                FillBackground(graphics, rectangle);
-
-                var barMeterWidth = rectangle.Width / barMeters.Count;
-                for (int i = 0; i < barMeters.Count; i++)
-                {
-                    var barMeter = barMeters[i];
-                    var bounds = new Rectangle(barMeterWidth * i, 0, barMeterWidth, rectangle.Height);
-
-                    var peak = DecibelWindow(barMeter.Peak);
-                    var peakPos = DecibelToPosition(peak);
-                    FillBarMeter(graphics, bounds, peakPos);
-
-                    var peakHold = DecibelWindow(barMeter.PeakHold);
-                    var peakHoldPos = DecibelToPosition(peakHold);
-                    DrawHorizontalLine(graphics, bounds, peakHoldPos, _meterSettings.CurrentValue.PeakHold);
-
-                    var peakMax = DecibelWindow(barMeter.PeakMax);
-                    var peakMaxPos = DecibelToPosition(peakMax);
-                    DrawHorizontalLine(graphics, bounds, peakMaxPos, _meterSettings.CurrentValue.PeakMax);
-
-                    if (i > 0)
-                        DrawVerticalLine(graphics, bounds);
-                }
-
-                DrawGrids(graphics, rectangle);
-                DrawText(graphics, rectangle, text);
-                DrawBorder(graphics, rectangle);
-
-                using (var memoryStream = new MemoryStream())
-                {
-                    bitmap.Save(memoryStream, ImageFormat.Png);
-
-                    return memoryStream.ToArray();
-                }
-            }
-        }
-        
         private void FillBackground(Graphics graphics, Rectangle rectangle)
         {
             using (var background = new SolidBrush(_meterSettings.CurrentValue.Background))
@@ -126,13 +145,15 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
             }
         }
 
-        private void FillBarMeter(Graphics graphics, Rectangle rectangle, int peakValue)
+        private void FillBarMeter(Graphics graphics, Rectangle rectangle, int peakValue, Scale scale)
         {
             using (var gradient = new LinearGradientBrush(rectangle, Color.Black, Color.Black, 90, false))
             {
                 gradient.InterpolationColors = new ColorBlend
                 {
-                    Positions = new[] { 0.00f, 0.10f, 0.10f, 0.20f, 0.20f, 1.00f },
+                    Positions = scale == Scale.Logarithmic
+                        ? new [] { 0.00f, 0.10f, 0.10f, 0.20f, 0.20f, 1.00f }
+                        : new [] { 0.00f, 0.25f, 0.25f, 0.50f, 0.50f, 1.00f },
                     Colors = new[] { _meterSettings.CurrentValue.High, _meterSettings.CurrentValue.High, _meterSettings.CurrentValue.Mid, _meterSettings.CurrentValue.Mid, _meterSettings.CurrentValue.Low, _meterSettings.CurrentValue.Low }
                 };
 

@@ -1,7 +1,6 @@
 ﻿using NAudio.CoreAudioApi;
 using System;
 using NAudio.Wave;
-using TouchPortal.Plugin.AudioMonitor.Models;
 
 namespace TouchPortal.Plugin.AudioMonitor.Capture
 {
@@ -18,37 +17,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Capture
 
         public float MeasurePeakValue()
             => _mmDevice.AudioMeterInformation.MasterPeakValue;
-
-        public void StartMonitor()
-        {
-            if (_recorder.CaptureState == CaptureState.Stopped || _recorder.CaptureState == CaptureState.Stopping)
-            {
-                try
-                {
-                    _recorder.StartRecording();
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
-            }
-        }
-
-        public void StopMonitoring()
-        {
-            if (_recorder.CaptureState == CaptureState.Capturing || _recorder.CaptureState == CaptureState.Starting)
-            {
-                try
-                {
-                    _recorder.StopRecording();
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
-            }
-        }
-
+        
         public static CaptureSession FromAudioOutput(MMDevice mmDevice)
         {
             var recorder = new WasapiLoopbackCapture();

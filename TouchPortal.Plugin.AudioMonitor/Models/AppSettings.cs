@@ -27,12 +27,12 @@ namespace TouchPortal.Plugin.AudioMonitor.Models
                 /// <summary>
                 /// Input or Output:
                 /// </summary>
-                public string Direction { get; set; }
+                public string Direction { get; set; } = "Input";
 
                 /// <summary>
                 /// Log or lin, Logarithmic (db) or Linear (%) scale.
                 /// </summary>
-                public string Scale { get; set; }
+                public string Scale { get; set; } = "Logarithmic";
             }
         }
 

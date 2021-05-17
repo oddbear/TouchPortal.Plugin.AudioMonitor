@@ -9,13 +9,10 @@ namespace TouchPortal.Plugin.AudioMonitor.Models
         private readonly CaptureSession _captureSession;
 
         private DateTime _prevUpdated;
-        private float _peak;
-        private float _peakHold;
-        private float _peakMax;
 
-        public Decibel PeakMax => ToDecibel(_peakMax);
-        public Decibel PeakHold => ToDecibel(_peakHold);
-        public Decibel Peak => ToDecibel(_peak);
+        public float Peak { get; private set; }
+        public float PeakHold { get; private set; }
+        public float PeakMax { get; private set; }
 
         public Scale RequestedScale { get; }
 
@@ -34,28 +31,25 @@ namespace TouchPortal.Plugin.AudioMonitor.Models
 
             SetValue(value);
         }
-
-        private Decibel ToDecibel(float volume)
-            => Decibel.FromLinearPercentage(volume);
-
+        
         private void SetValue(float volume)
         {
             //Hold Duration:
             if (_prevUpdated < DateTime.Now.AddSeconds(-3))
-                _peak = 0;
+                PeakHold = 0;
 
-            if (volume >= _peakMax)
+            if (volume >= PeakMax)
             {
-                _peakMax = volume;
-                _peakHold = 0;
+                PeakMax = volume;
+                PeakHold = 0;
             }
-            else if (volume > _peakHold)
+            else if (volume > PeakHold)
             {
-                _peakHold = volume;
+                PeakHold = volume;
                 _prevUpdated = DateTime.Now;
             }
 
-            _peak = volume;
+            Peak = volume;
         }
 
         public void Dispose()

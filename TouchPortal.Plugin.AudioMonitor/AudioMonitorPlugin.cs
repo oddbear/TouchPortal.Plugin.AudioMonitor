@@ -7,7 +7,6 @@ using TouchPortal.Plugin.AudioMonitor.Models;
 using TouchPortalSDK;
 using TouchPortalSDK.Interfaces;
 using TouchPortalSDK.Messages.Events;
-using TouchPortalSDK.Messages.Models;
 
 namespace TouchPortal.Plugin.AudioMonitor
 {
