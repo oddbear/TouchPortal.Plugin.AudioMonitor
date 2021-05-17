@@ -33,7 +33,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
 
         private int DecibelToPosition(Decibel decibel)
         {
-            var percentage = decibel.Value / _dbMin.Value;
+            var percentage = 1 - (decibel.Value / _dbMin.Value);
             var position = _appSettings.Height * percentage;
 
             return (int)position;
@@ -44,9 +44,9 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
 
         public byte[] DrawPng(BarMeter barMeter)
         {
-            var text = barMeter.Peak < _dbMin
-                ? "low"
-                : $"{barMeter.Peak}db";
+            var text = barMeter.Peak >= _dbMin
+                ? barMeter.Peak.ToString()
+                : "low";
 
             var peak = DecibelWindow(barMeter.Peak);
             var peakHold = DecibelWindow(barMeter.PeakHold);
@@ -61,25 +61,25 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
 
         private byte[] DrawPng(string text, int peakPos, int peakHoldPos, int peakMaxPos)
         {
-            using (var bitmap = new Bitmap(_appSettings.Width, _appSettings.Height))
+            var rectangle = new Rectangle(0, 0, _appSettings.Width, _appSettings.Height);
+
+            using (var bitmap = new Bitmap(rectangle.Width, rectangle.Height))
             using (var graphics = Graphics.FromImage(bitmap))
             {
-                var rectangle = new Rectangle(0, 0, _appSettings.Width, _appSettings.Height);
-
                 //Background (fill as 100% volume):
                 FillBackground(graphics, rectangle);
 
                 //Clear background (ex. 90% volume, clear top 10%):
-                ClearBackground(graphics, _appSettings.Width, peakPos);
+                FillBarMeter(graphics, rectangle, peakPos);
 
                 //10x Grid:
-                DrawGrids(graphics);
+                DrawGrids(graphics, rectangle);
 
                 //Set short time value:
-                DrawLine(graphics, peakHoldPos, _appSettings.ColorPeakHold);
+                DrawLine(graphics, rectangle, peakHoldPos, _appSettings.ColorPeakHold);
 
                 //Set all time value:
-                DrawLine(graphics, peakMaxPos, _appSettings.ColorPeakMax);
+                DrawLine(graphics, rectangle, peakMaxPos, _appSettings.ColorPeakMax);
 
                 //Text:
                 DrawText(graphics, rectangle, text);
@@ -96,60 +96,48 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
             }
         }
 
-        private void FillBackground(Graphics graphics, Rectangle rectangle, bool useSoftGradient = false)
-        {
-            using (var gradient = new LinearGradientBrush(rectangle, Color.Black, Color.Black, 90, false))
-            {
-                if (useSoftGradient)
-                {
-                    gradient.InterpolationColors = new ColorBlend
-                    {
-                        Positions = new[] { 0.00f, 0.10f, 0.20f, 1.00f },
-                        Colors = new[] { _appSettings.ColorBarMeterHigh, _appSettings.ColorBarMeterMid, _appSettings.ColorBarMeterLow, _appSettings.ColorBarMeterLow }
-                    };
-                }
-                else
-                {
-                    gradient.InterpolationColors = new ColorBlend
-                    {
-                        Positions = new[] { 0.00f, 0.10f, 0.10f, 0.20f, 0.20f, 1.00f },
-                        Colors = new[] { _appSettings.ColorBarMeterHigh, _appSettings.ColorBarMeterHigh, _appSettings.ColorBarMeterMid, _appSettings.ColorBarMeterMid, _appSettings.ColorBarMeterLow, _appSettings.ColorBarMeterLow }
-                    };
-                }
-
-                graphics.FillRectangle(gradient, rectangle);
-            }
-        }
-
-        private void ClearBackground(Graphics graphics, int width, int yPosition)
+        private void FillBackground(Graphics graphics, Rectangle rectangle)
         {
             using (var background = new SolidBrush(_appSettings.ColorBackground))
             {
-                var backgroundRect = new Rectangle(0, 0, width, yPosition);
-                graphics.FillRectangle(background, backgroundRect);
+                graphics.FillRectangle(background, rectangle);
             }
         }
 
-        private void DrawGrids(Graphics graphics)
+        private void FillBarMeter(Graphics graphics, Rectangle rectangle, int peakValue)
+        {
+            using (var gradient = new LinearGradientBrush(rectangle, Color.Black, Color.Black, 90, false))
+            {
+                gradient.InterpolationColors = new ColorBlend
+                {
+                    Positions = new[] { 0.00f, 0.10f, 0.10f, 0.20f, 0.20f, 1.00f },
+                    Colors = new[] { _appSettings.ColorBarMeterHigh, _appSettings.ColorBarMeterHigh, _appSettings.ColorBarMeterMid, _appSettings.ColorBarMeterMid, _appSettings.ColorBarMeterLow, _appSettings.ColorBarMeterLow }
+                };
+
+                var y = rectangle.Height - peakValue;
+                var bounds = new Rectangle(0, y, rectangle.Width, peakValue);
+                graphics.FillRectangle(gradient, bounds);
+            }
+        }
+        
+        private void DrawGrids(Graphics graphics, Rectangle rectangle)
         {
             using (var pen = new Pen(_appSettings.ColorOverlay))
             {
-                var height = _appSettings.Height;
+                var height = rectangle.Height;
                 for (var y = 0; y < height; y += height / 10)
                 {
-                    graphics.DrawLine(pen, 0, y, _appSettings.Width, y);
+                    graphics.DrawLine(pen, 0, y, rectangle.Width, y);
                 }
             }
         }
 
-        private void DrawLine(Graphics graphics, int yPosition, Color color)
+        private void DrawLine(Graphics graphics, Rectangle rectangle, int peakValue, Color color)
         {
             using (var pen = new Pen(color, 2))
             {
-                if (yPosition < _appSettings.Height)
-                {
-                    graphics.DrawLine(pen, 0, yPosition, _appSettings.Width, yPosition);
-                }
+                var y = rectangle.Height - peakValue;
+                graphics.DrawLine(pen, 0, y, rectangle.Width, y);
             }
         }
 
