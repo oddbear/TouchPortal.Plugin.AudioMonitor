@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using TouchPortal.Plugin.AudioMonitor.Capture;
+using TouchPortal.Plugin.AudioMonitor.Meters;
+using TouchPortal.Plugin.AudioMonitor.Models;
 using TouchPortal.Plugin.AudioMonitor.Settings;
 using TouchPortalSDK;
 using TouchPortalSDK.Interfaces;
@@ -12,7 +15,7 @@ namespace TouchPortal.Plugin.AudioMonitor
     public interface IPluginCallbacks
     {
         void MultimediaDeviceUpdateCallback(string deviceName);
-        void MonitoringCallback(double decibel);
+        void MonitoringCallback(Decibel decibel);
     }
 
     public class AudioMonitorPlugin : ITouchPortalEventHandler, IPluginCallbacks
@@ -25,7 +28,7 @@ namespace TouchPortal.Plugin.AudioMonitor
         private readonly ITouchPortalClient _client;
         private readonly WindowsMultimediaDevice _windowsMultimediaDevice;
         private readonly MonitorGraphics _monitorGraphics;
-        private readonly ValueCache _valueCache;
+        private readonly BarMeter _barMeter;
 
         public AudioMonitorPlugin(AppSettings appSettings)
         {
@@ -35,7 +38,7 @@ namespace TouchPortal.Plugin.AudioMonitor
             
             _monitorGraphics = new MonitorGraphics(appSettings);
             
-            _valueCache = new ValueCache();
+            _barMeter = new BarMeter();
         }
 
         public void Run()
@@ -54,7 +57,7 @@ namespace TouchPortal.Plugin.AudioMonitor
             var deviceUpdated = _windowsMultimediaDevice.SetMultimediaDevice(_device, _deviceOffset);
             if (deviceUpdated)
             {
-                _valueCache.ResetValues();
+                _barMeter.ResetValues();
                 _windowsMultimediaDevice.StartMonitoring();
             }
             else
@@ -76,11 +79,11 @@ namespace TouchPortal.Plugin.AudioMonitor
             _client.StateUpdate("oddbear.audio.monitor.device", deviceName);
         }
         
-        public void MonitoringCallback(double decibel)
+        public void MonitoringCallback(Decibel decibel)
         {
-            _valueCache.SetValue(decibel);
+            _barMeter.SetValue(decibel);
             
-            var image = _monitorGraphics.DrawPng(decibel, _valueCache.PrevDecibel, _valueCache.MaxDecibel);
+            var image = _monitorGraphics.DrawPng(_barMeter);
 
             _client.StateUpdate("oddbear.audio.monitor.icon", Convert.ToBase64String(image));
         }
@@ -90,7 +93,7 @@ namespace TouchPortal.Plugin.AudioMonitor
             switch (message.ActionId)
             {
                 case "oddbear.audio.monitor.clear":
-                    _valueCache.ResetValues();
+                    _barMeter.ResetValues();
                     return;
                 case "oddbear.audio.monitor.toggle":
                     _windowsMultimediaDevice.ToggleMonitoring();
