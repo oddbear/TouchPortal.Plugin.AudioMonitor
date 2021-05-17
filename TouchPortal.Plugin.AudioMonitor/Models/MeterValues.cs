@@ -1,9 +1,8 @@
 ﻿using System;
-using TouchPortal.Plugin.AudioMonitor.Models;
 
-namespace TouchPortal.Plugin.AudioMonitor.Meters
+namespace TouchPortal.Plugin.AudioMonitor.Models
 {
-    public class BarMeter
+    public class MeterValues
     {
         private DateTime _prevUpdated;
 

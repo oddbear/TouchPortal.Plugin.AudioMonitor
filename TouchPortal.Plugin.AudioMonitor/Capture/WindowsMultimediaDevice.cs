@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using Microsoft.Extensions.Options;
 using NAudio.CoreAudioApi;
 using TouchPortal.Plugin.AudioMonitor.Models;
 
@@ -7,6 +8,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Capture
 {
     public class WindowsMultimediaDevice
     {
+        private readonly IOptionsMonitor<AppSettings.Devices> _appSettings;
         private readonly IPluginCallbacks _callbacks;
         
         private MMDevice _mmDevice;
@@ -15,8 +17,9 @@ namespace TouchPortal.Plugin.AudioMonitor.Capture
 
         public bool IsMonitoring { get; private set; }
 
-        public WindowsMultimediaDevice(IPluginCallbacks callbacks)
+        public WindowsMultimediaDevice(IOptionsMonitor<AppSettings.Devices> appSettings, IPluginCallbacks callbacks)
         {
+            _appSettings = appSettings;
             _callbacks = callbacks ?? throw new ArgumentNullException(nameof(callbacks));
         }
 
@@ -113,7 +116,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Capture
                     
                     _callbacks.MonitoringCallback(decibel);
 
-                    Thread.Sleep(100); //Interrupted from waiting ... on change...
+                    Thread.Sleep(_appSettings.CurrentValue.UpdateInterval);
                 }
             }
             catch (ThreadInterruptedException)
