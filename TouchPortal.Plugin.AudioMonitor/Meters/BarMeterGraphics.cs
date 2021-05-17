@@ -2,20 +2,25 @@
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using TouchPortal.Plugin.AudioMonitor.Models;
-using TouchPortal.Plugin.AudioMonitor.Settings;
 
 namespace TouchPortal.Plugin.AudioMonitor.Meters
 {
-    public class MonitorGraphics
+    public class BarMeterGraphics
     {
-        private readonly AppSettings _appSettings;
+        private readonly ILogger<BarMeterGraphics> _logger;
+        private readonly IOptionsMonitor<AppSettings.BarMeterSettings> _meterSettings;
         private readonly Decibel _dbMin;
         private readonly Decibel _dbMax;
 
-        public MonitorGraphics(AppSettings appSettings)
+        public BarMeterGraphics(ILogger<BarMeterGraphics> logger,
+                                IOptionsMonitor<AppSettings.BarMeterSettings> meterSettings)
         {
-            _appSettings = appSettings;
+            _logger = logger;
+            _meterSettings = meterSettings;
+
             _dbMin = Decibel.FromDecibelValue(-60);
             _dbMax = Decibel.FromDecibelValue(0);
         }
@@ -34,23 +39,23 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
         private int DecibelToPosition(Decibel decibel)
         {
             var percentage = 1 - (decibel.Value / _dbMin.Value);
-            var position = _appSettings.Height * percentage;
+            var position = _meterSettings.CurrentValue.Height * percentage;
 
             return (int)position;
         }
 
         public byte[] DrawPng(string text)
-            => DrawPng(text, _appSettings.Height, _appSettings.Height, _appSettings.Height);
+            => DrawPng(text, _meterSettings.CurrentValue.Height, _meterSettings.CurrentValue.Height, _meterSettings.CurrentValue.Height);
 
-        public byte[] DrawPng(BarMeter barMeter)
+        public byte[] DrawPng(MeterValues meterValues)
         {
-            var text = barMeter.Peak >= _dbMin
-                ? barMeter.Peak.ToString()
+            var text = meterValues.Peak >= _dbMin
+                ? meterValues.Peak.ToString()
                 : "low";
 
-            var peak = DecibelWindow(barMeter.Peak);
-            var peakHold = DecibelWindow(barMeter.PeakHold);
-            var peakMax = DecibelWindow(barMeter.PeakMax);
+            var peak = DecibelWindow(meterValues.Peak);
+            var peakHold = DecibelWindow(meterValues.PeakHold);
+            var peakMax = DecibelWindow(meterValues.PeakMax);
 
             var peakPos = DecibelToPosition(peak);
             var peakHoldPos = DecibelToPosition(peakHold);
@@ -61,7 +66,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
 
         private byte[] DrawPng(string text, int peakPos, int peakHoldPos, int peakMaxPos)
         {
-            var rectangle = new Rectangle(0, 0, _appSettings.Width, _appSettings.Height);
+            var rectangle = new Rectangle(0, 0, _meterSettings.CurrentValue.Width, _meterSettings.CurrentValue.Height);
 
             using (var bitmap = new Bitmap(rectangle.Width, rectangle.Height))
             using (var graphics = Graphics.FromImage(bitmap))
@@ -76,10 +81,10 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
                 DrawGrids(graphics, rectangle);
 
                 //Set short time value:
-                DrawLine(graphics, rectangle, peakHoldPos, _appSettings.ColorPeakHold);
+                DrawLine(graphics, rectangle, peakHoldPos, _meterSettings.CurrentValue.PeakHold);
 
                 //Set all time value:
-                DrawLine(graphics, rectangle, peakMaxPos, _appSettings.ColorPeakMax);
+                DrawLine(graphics, rectangle, peakMaxPos, _meterSettings.CurrentValue.PeakMax);
 
                 //Text:
                 DrawText(graphics, rectangle, text);
@@ -98,7 +103,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
 
         private void FillBackground(Graphics graphics, Rectangle rectangle)
         {
-            using (var background = new SolidBrush(_appSettings.ColorBackground))
+            using (var background = new SolidBrush(_meterSettings.CurrentValue.Background))
             {
                 graphics.FillRectangle(background, rectangle);
             }
@@ -111,7 +116,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
                 gradient.InterpolationColors = new ColorBlend
                 {
                     Positions = new[] { 0.00f, 0.10f, 0.10f, 0.20f, 0.20f, 1.00f },
-                    Colors = new[] { _appSettings.ColorBarMeterHigh, _appSettings.ColorBarMeterHigh, _appSettings.ColorBarMeterMid, _appSettings.ColorBarMeterMid, _appSettings.ColorBarMeterLow, _appSettings.ColorBarMeterLow }
+                    Colors = new[] { _meterSettings.CurrentValue.High, _meterSettings.CurrentValue.High, _meterSettings.CurrentValue.Mid, _meterSettings.CurrentValue.Mid, _meterSettings.CurrentValue.Low, _meterSettings.CurrentValue.Low }
                 };
 
                 var y = rectangle.Height - peakValue;
@@ -122,7 +127,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
         
         private void DrawGrids(Graphics graphics, Rectangle rectangle)
         {
-            using (var pen = new Pen(_appSettings.ColorOverlay))
+            using (var pen = new Pen(_meterSettings.CurrentValue.Overlay))
             {
                 var height = rectangle.Height;
                 for (var y = 0; y < height; y += height / 10)
@@ -143,7 +148,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
 
         private void DrawBorder(Graphics graphics, Rectangle rectangle)
         {
-            using (var pen = new Pen(_appSettings.ColorOverlay, 2))
+            using (var pen = new Pen(_meterSettings.CurrentValue.Overlay, 2))
             {
                 pen.Alignment = PenAlignment.Inset;
 
