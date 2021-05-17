@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System.Collections.Generic;
+using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
@@ -65,7 +66,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
             }
         }
 
-        public byte[] DrawPng(MeterValues[] barMeters)
+        public byte[] DrawPng(IReadOnlyList<MeterValues> barMeters)
         {
             var defaultBarMeter = barMeters.FirstOrDefault();
             if (defaultBarMeter is null)
@@ -82,8 +83,8 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
             {
                 FillBackground(graphics, rectangle);
 
-                var barMeterWidth = rectangle.Width / barMeters.Length;
-                for (int i = 0; i < barMeters.Length; i++)
+                var barMeterWidth = rectangle.Width / barMeters.Count;
+                for (int i = 0; i < barMeters.Count; i++)
                 {
                     var barMeter = barMeters[i];
                     var bounds = new Rectangle(barMeterWidth * i, 0, barMeterWidth, rectangle.Height);

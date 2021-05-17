@@ -9,25 +9,15 @@ namespace TouchPortal.Plugin.AudioMonitor.Capture
     {
         private readonly MMDevice _mmDevice;
         private readonly WasapiCapture _recorder;
-
-        public MeterValues MeterValues { get; }
-
+        
         private CaptureSession(MMDevice mmDevice, WasapiCapture recorder)
         {
             _mmDevice = mmDevice;
             _recorder = recorder;
-
-            MeterValues = new MeterValues();
         }
 
-        public void MeasurePeakValue()
-        {
-            var masterPeakValue = _mmDevice.AudioMeterInformation.MasterPeakValue;
-
-            var decibel = Decibel.FromLinearPercentage(masterPeakValue);
-
-            MeterValues.SetValue(decibel);
-        }
+        public float MeasurePeakValue()
+            => _mmDevice.AudioMeterInformation.MasterPeakValue;
 
         public void StartMonitor()
         {
