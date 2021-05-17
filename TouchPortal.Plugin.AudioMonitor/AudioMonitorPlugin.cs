@@ -34,15 +34,16 @@ namespace TouchPortal.Plugin.AudioMonitor
         private readonly MeterValues _meterValues;
 
         public AudioMonitorPlugin(ILogger<AudioMonitorPlugin> logger,
-                                  IOptionsMonitor<AppSettings.Devices> devicesSettings,
+                                  ITouchPortalClientFactory clientFactory,
+                                  WindowsMultimediaDeviceFactory windowsMultimediaDeviceFactory,
                                   BarMeterGraphics barMeterGraphics)
         {
             _logger = logger;
             _barMeterGraphics = barMeterGraphics;
 
-            _client = TouchPortalFactory.CreateClient(this);
-
-            _windowsMultimediaDevice = new WindowsMultimediaDevice(devicesSettings, this);
+            _client = clientFactory.Create(this);
+            
+            _windowsMultimediaDevice = windowsMultimediaDeviceFactory.Create(this);
             
             _meterValues = new MeterValues();
         }

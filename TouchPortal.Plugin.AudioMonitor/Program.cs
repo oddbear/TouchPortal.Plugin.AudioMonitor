@@ -3,8 +3,10 @@ using System.IO;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using TouchPortal.Plugin.AudioMonitor.Capture;
 using TouchPortal.Plugin.AudioMonitor.Meters;
 using TouchPortal.Plugin.AudioMonitor.Models;
+using TouchPortalSDK.Configuration;
 
 namespace TouchPortal.Plugin.AudioMonitor
 {
@@ -27,8 +29,10 @@ namespace TouchPortal.Plugin.AudioMonitor
 
             var services = new ServiceCollection();
 
+            services.AddTouchPortalSdk(configurationRoot);
             services.AddSingleton<AudioMonitorPlugin>();
             services.AddSingleton<BarMeterGraphics>();
+            services.AddSingleton<WindowsMultimediaDeviceFactory>();
 
             //Configuration:
             services.Configure<AppSettings.AppOptions>(configurationRoot);
