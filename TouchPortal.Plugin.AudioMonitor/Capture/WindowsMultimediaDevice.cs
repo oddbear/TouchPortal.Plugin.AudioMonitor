@@ -106,7 +106,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Capture
             _sessions.Clear();
 
             //Then re-add all:
-            var sources = _appSettings.CurrentValue.Devices;
+            var sources = _appSettings.CurrentValue.Devices ?? Array.Empty<AppSettings.Capture.Device>();
             foreach (var source in sources)
             {
                 var mmDevice = GetDevice(source);
