@@ -36,12 +36,6 @@ namespace TouchPortal.Plugin.AudioMonitor
         {
             _client.Connect();
         }
-
-        public void MultimediaDeviceUpdateCallback(string deviceName)
-        {
-            //TODO: How can this work the best way with multiple devices?
-            _client.StateUpdate("oddbear.audio.monitor.device", deviceName);
-        }
         
         public void MonitoringCallback(IReadOnlyList<MeterValues> meters)
         {
@@ -53,27 +47,14 @@ namespace TouchPortal.Plugin.AudioMonitor
         void ITouchPortalEventHandler.OnActionEvent(ActionEvent message)
         {
             _logger.LogDebug("Method invoked '{0}'", nameof(ITouchPortalEventHandler.OnActionEvent));
-
-            //TODO: Rethink the actions needed here.
-
+            
             switch (message.ActionId)
             {
                 case "oddbear.audio.monitor.clear":
-                    //TODO: Make some updated logic on this one, or remove.
-                    //_meterValues.ResetValues();
+                    _windowsMultimediaDevice.ResetValues();
                     return;
                 case "oddbear.audio.monitor.toggle":
-                    //TODO: Make some updated logic on this one, or remove.
-                    //_windowsMultimediaDevice.ToggleMonitoring();
-                    return;
-                case "oddbear.audio.monitor.next":
-                    //TODO: Remove?
-                    return;
-                case "oddbear.audio.monitor.prev":
-                    //TODO: Remove?
-                    return;
-                case "oddbear.audio.monitor.reset":
-                    //TODO: Remove?
+                    _windowsMultimediaDevice.ToggleMonitoring();
                     return;
             }
         }

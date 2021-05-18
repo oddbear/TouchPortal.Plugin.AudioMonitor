@@ -1,6 +1,6 @@
-﻿using NAudio.CoreAudioApi;
-using System;
+﻿using System;
 using NAudio.Wave;
+using NAudio.CoreAudioApi;
 
 namespace TouchPortal.Plugin.AudioMonitor.Capture
 {
@@ -9,14 +9,14 @@ namespace TouchPortal.Plugin.AudioMonitor.Capture
         private readonly object _lock = new object();
 
         private readonly MMDevice _mmDevice;
-        private readonly WasapiCapture _recorder;
+        public WasapiCapture Recorder { get; }
 
         private float _max;
 
         private CaptureSession(MMDevice mmDevice, WasapiCapture recorder)
         {
             _mmDevice = mmDevice;
-            _recorder = recorder;
+            Recorder = recorder;
         }
 
         public float MeasurePeakValue()
@@ -28,7 +28,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Capture
                 return value;
             }
         }
-        
+
         public static CaptureSession FromAudioOutput(MMDevice mmDevice)
         {
             var recorder = new WasapiLoopbackCapture(mmDevice);
@@ -71,7 +71,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Capture
 
         public void Dispose()
         {
-            _recorder?.Dispose();
+            Recorder?.Dispose();
             _mmDevice?.Dispose();
         }
     }

@@ -6,6 +6,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Models
 {
     public class MeterValues : IDisposable
     {
+        private readonly object _lock = new object();
         private readonly CaptureSession _captureSession;
 
         private DateTime _prevUpdated;
@@ -36,22 +37,41 @@ namespace TouchPortal.Plugin.AudioMonitor.Models
         
         private void SetValue(float volume)
         {
-            //Hold Duration:
-            if (_prevUpdated < DateTime.Now.AddSeconds(-3))
-                PeakHold = 0;
-
-            if (volume >= PeakMax)
+            lock (_lock)
             {
-                PeakMax = volume;
-                PeakHold = 0;
-            }
-            else if (volume > PeakHold)
-            {
-                PeakHold = volume;
-                _prevUpdated = DateTime.Now;
-            }
+                //Hold Duration:
+                if (_prevUpdated < DateTime.Now.AddSeconds(-3))
+                    PeakHold = 0;
 
-            Peak = volume;
+                if (volume >= PeakMax)
+                {
+                    PeakMax = volume;
+                    PeakHold = 0;
+                }
+                else if (volume > PeakHold)
+                {
+                    PeakHold = volume;
+                    _prevUpdated = DateTime.Now;
+                }
+
+                Peak = volume;
+            }
+        }
+
+        public void PauseMonitoring()
+            => _captureSession.Recorder.StopRecording();
+
+        public void ResumeMonitoring()
+            => _captureSession.Recorder.StartRecording();
+
+        public void ResetValues()
+        {
+            lock (_lock)
+            {
+                Peak = 0;
+                PeakHold = 0;
+                PeakMax = 0;
+            }
         }
 
         public void Dispose()

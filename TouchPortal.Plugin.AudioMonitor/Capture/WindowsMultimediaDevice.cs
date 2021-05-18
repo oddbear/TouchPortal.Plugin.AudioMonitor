@@ -23,6 +23,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Capture
 
         //This is set as dirty, so it will updated the sources on startup:
         private bool _dirtySources = true;
+        private bool _isMonitoring = true;
         
         public WindowsMultimediaDevice(ILogger<WindowsMultimediaDevice> logger, IOptionsMonitor<AppSettings.Capture> appSettings,
                                        IPluginCallbacks callbacks)
@@ -63,6 +64,35 @@ namespace TouchPortal.Plugin.AudioMonitor.Capture
                 _logger.LogWarning($"Device name '{device.Name}' did not match any devices. This will be ignored.");
 
             return mmDevice;
+        }
+
+        public void ResetValues()
+        {
+            foreach (var meterValues in _sessions)
+                meterValues.ResetValues();
+        }
+
+        public void ToggleMonitoring()
+        {
+            try
+            {
+                if (_isMonitoring)
+                {
+                    foreach (var meterValues in _sessions)
+                        meterValues.PauseMonitoring();
+                }
+                else
+                {
+                    foreach (var meterValues in _sessions)
+                        meterValues.ResumeMonitoring();
+                }
+
+                _isMonitoring = !_isMonitoring;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Failed during monitoring toggle.");
+            }
         }
 
         private void UpdateSources()

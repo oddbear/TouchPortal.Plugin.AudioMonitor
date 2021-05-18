@@ -5,7 +5,6 @@ namespace TouchPortal.Plugin.AudioMonitor
 {
     public interface IPluginCallbacks
     {
-        void MultimediaDeviceUpdateCallback(string deviceName);
         void MonitoringCallback(IReadOnlyList<MeterValues> meters);
     }
 }
