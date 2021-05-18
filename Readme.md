@@ -4,7 +4,7 @@ Audio Monitor Plugin for Touch Portal 2.3+ Windows.
 Download and install .tpp file from [Releases](https://github.com/oddbear/TouchPortal.Plugin.AudioMonitor/releases/latest). <br />
 **Important:** Some times you need to **refresh** the device page to "Kickstart" the updates.
 
-[Latest Pre-Release](https://github.com/oddbear/TouchPortal.Plugin.AudioMonitor/releases/tag/v2-build-002) supports:
+[Latest Pre-Release](https://github.com/oddbear/TouchPortal.Plugin.AudioMonitor/releases/tag/v2-build-004) supports:
 * Configure colors (ex. background to black)
 * Configure from square to rectangle ex. 1x2, 1x3, 1x4 etc.
 
