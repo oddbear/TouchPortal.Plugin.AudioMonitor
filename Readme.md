@@ -14,7 +14,7 @@ This plugin can be used to monitor your Audio Devices in TouchPortal.
 This plugin is in a **early stage**, and are still under testing.
 
 
-![vertical](./Assets/v.png)
+![vertical](./Assets/vertical.png)
 
 ### Event edit
 
