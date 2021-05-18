@@ -36,7 +36,7 @@ namespace TouchPortal.Plugin.AudioMonitor
 
             //Configuration:
             services.Configure<AppSettings.AppOptions>(configurationRoot);
-            services.Configure<AppSettings.Devices>(configurationRoot.GetSection("Devices"));
+            services.Configure<AppSettings.Capture>(configurationRoot.GetSection("Capture"));
             services.Configure<AppSettings.BarMeterSettings>(configurationRoot.GetSection("BarMeter"));
 
             //Logging:

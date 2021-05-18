@@ -1,127 +1,165 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NAudio.CoreAudioApi;
 using TouchPortal.Plugin.AudioMonitor.Models;
+using TouchPortal.Plugin.AudioMonitor.Models.Enums;
 
 namespace TouchPortal.Plugin.AudioMonitor.Capture
 {
     public class WindowsMultimediaDevice
     {
-        private readonly IOptionsMonitor<AppSettings.Devices> _appSettings;
+        private readonly ILogger<WindowsMultimediaDevice> _logger;
+        private readonly IOptionsMonitor<AppSettings.Capture> _appSettings;
         private readonly IPluginCallbacks _callbacks;
+
+        private readonly List<MeterValues> _sessions = new List<MeterValues>();
+
+        private readonly MMDeviceEnumerator _deviceEnumerator;
+        private readonly Thread _monitoringThread;
+
+        //This is set as dirty, so it will updated the sources on startup:
+        private bool _dirtySources = true;
+        private bool _isMonitoring = true;
         
-        private MMDevice _mmDevice;
-        private WasapiCapture _recorder;
-        private Thread _monitoringThread;
-
-        public bool IsMonitoring { get; private set; }
-
-        public WindowsMultimediaDevice(IOptionsMonitor<AppSettings.Devices> appSettings, IPluginCallbacks callbacks)
+        public WindowsMultimediaDevice(ILogger<WindowsMultimediaDevice> logger, IOptionsMonitor<AppSettings.Capture> appSettings,
+                                       IPluginCallbacks callbacks)
         {
-            _appSettings = appSettings;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _appSettings = appSettings ?? throw new ArgumentNullException(nameof(appSettings));
             _callbacks = callbacks ?? throw new ArgumentNullException(nameof(callbacks));
-        }
 
-        public bool SetMultimediaDevice(string deviceName, int deviceOffset)
-        {
-            ClearMonitoring();
-            ClearMultimediaDevice();
+            _deviceEnumerator = new MMDeviceEnumerator();
 
-            var enumerator = new MMDeviceEnumerator();
-            //DataFlow.Capture -> Microphone/Input
-            //DataFlow.Render -> Speakers/Output
-            var devices = enumerator
-                .EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
-            
-            if (string.IsNullOrWhiteSpace(deviceName))
-                deviceName = enumerator
-                    .GetDefaultAudioEndpoint(DataFlow.Capture, Role.Multimedia)
-                    .FriendlyName;
-
-            for (var i = 0; i < devices.Count; i++)
-            {
-                if (!devices[i].FriendlyName.Contains(deviceName))
-                    continue;
-
-                var index = GetIndex(i + deviceOffset, devices.Count);
-                    
-                _mmDevice = devices[index];
-
-                _recorder = new WasapiCapture(_mmDevice);
-                _recorder.StartRecording();
-
-                _callbacks.MultimediaDeviceUpdateCallback(_mmDevice.FriendlyName);
-
-                return true;
-            }
-            
-            return false;
-        }
-
-        private void ClearMultimediaDevice()
-        {
-            _recorder?.Dispose();
-            _recorder = null;
-            _mmDevice?.Dispose();
-            _mmDevice = null;
-        }
-
-        private int GetIndex(int offset, int len)
-        {
-            var index = offset % len;
-            if (index < 0)
-                index += len;
-
-            return index;
-        }
-
-        public void StartMonitoring()
-        {
-            ClearMonitoring();
-            
-            _monitoringThread = new Thread(Monitoring)
-            {
-                IsBackground = true
-            };
+            _monitoringThread = new Thread(Monitoring) { IsBackground = true };
             _monitoringThread.Start();
-
-            IsMonitoring = true;
+            
+            //Seems to be using a FileSystemWatcher, better to use a boolean because of concurrency and double events.
+            _appSettings.OnChange(settings => _dirtySources = true);
         }
         
-        public void ClearMonitoring()
+        private MMDevice GetDevice(AppSettings.Capture.Device device)
         {
-            _monitoringThread?.Interrupt();
+            if (string.IsNullOrWhiteSpace(device.Name))
+            {
+                _logger.LogWarning("Device configuration missing a name. This will be ignored.");
+                return null;
+            }
+
+            var dataFlow = "Output".Equals(device.Direction, StringComparison.OrdinalIgnoreCase)
+                ? DataFlow.Render
+                : DataFlow.Capture;
             
-            IsMonitoring = false;
+            if ("default".Equals(device.Name, StringComparison.OrdinalIgnoreCase))
+                return _deviceEnumerator.GetDefaultAudioEndpoint(dataFlow, Role.Console);
+
+            var mmDevice = _deviceEnumerator
+                .EnumerateAudioEndPoints(dataFlow, DeviceState.Active)
+                .FirstOrDefault(d => d.FriendlyName?.IndexOf(device.Name, StringComparison.OrdinalIgnoreCase) >= 0);
+            
+            if (mmDevice is null)
+                _logger.LogWarning($"Device name '{device.Name}' did not match any devices. This will be ignored.");
+
+            return mmDevice;
+        }
+
+        public void ResetValues()
+        {
+            foreach (var meterValues in _sessions)
+                meterValues.ResetValues();
         }
 
         public void ToggleMonitoring()
         {
-            if (IsMonitoring)
-                ClearMonitoring();
-            else
-                StartMonitoring();
+            try
+            {
+                if (_isMonitoring)
+                {
+                    foreach (var meterValues in _sessions)
+                        meterValues.PauseMonitoring();
+                }
+                else
+                {
+                    foreach (var meterValues in _sessions)
+                        meterValues.ResumeMonitoring();
+                }
+
+                _isMonitoring = !_isMonitoring;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Failed during monitoring toggle.");
+            }
+        }
+
+        private void UpdateSources()
+        {
+            _logger.LogInformation("Updating sources.");
+
+            //Do it simple for now, clear and dispose all:
+            foreach (var sessionsValue in _sessions)
+                sessionsValue.Dispose();
+
+            _sessions.Clear();
+
+            //Then re-add all:
+            var sources = _appSettings.CurrentValue.Devices;
+            foreach (var source in sources)
+            {
+                var mmDevice = GetDevice(source);
+                var scale = source.Scale?.StartsWith("Lin", StringComparison.OrdinalIgnoreCase) == true
+                    ? Scale.Linear
+                    : Scale.Logarithmic;
+
+                if (mmDevice is null)
+                {
+                    var meterValues = new MeterValues(null, scale, source.Label);
+                    _sessions.Add(meterValues);
+                }
+                else
+                {
+                    var captureSession = mmDevice.DataFlow == DataFlow.Render
+                        ? CaptureSession.FromAudioOutput(mmDevice)
+                        : CaptureSession.FromAudioInput(mmDevice);
+
+                    var meterValues = new MeterValues(captureSession, scale, source.Label);
+                    _sessions.Add(meterValues);
+                }
+            }
+
+            _dirtySources = false;
         }
 
         private void Monitoring()
         {
             try
             {
-                while (_mmDevice != null)
+                while (true)
                 {
-                    var masterPeakValue = _mmDevice.AudioMeterInformation.MasterPeakValue;
-                    
-                    var decibel = Decibel.FromLinearPercentage(masterPeakValue);
-                    
-                    _callbacks.MonitoringCallback(decibel);
+                    try
+                    {
+                        if (_dirtySources)
+                            UpdateSources();
+
+                        foreach (var meterValues in _sessions)
+                            meterValues.MeasurePeakValue();
+                        
+                        _callbacks.MonitoringCallback(_sessions);
+                    }
+                    catch (Exception exception)
+                    {
+                        _logger.LogError(exception, "Issue from monitoring thread.");
+                    }
 
                     Thread.Sleep(_appSettings.CurrentValue.UpdateInterval);
                 }
             }
             catch (ThreadInterruptedException)
             {
-                //Ignore, this situation is ok.
+                //If sleeping when the thread is Interrupted, this is ok.
             }
         }
     }

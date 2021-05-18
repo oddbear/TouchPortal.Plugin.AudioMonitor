@@ -4,12 +4,6 @@
   "name": "Audio Monitor",
   "id": "oddbear.audio.monitor",
   "plugin_start_cmd": "%TP_PLUGIN_FOLDER%TouchPortal.Plugin.AudioMonitor\\TouchPortal.Plugin.AudioMonitor.exe",
-  "settings": [
-    {
-      "name": "Device Name",
-      "type": "text"
-    }
-  ],
   "categories": [
     {
       "id": "oddbear.audio.monitor.category",
@@ -29,27 +23,6 @@
           "name": "Clear Monitoring",
           "type": "communicate",
           "tryInline": true
-        },
-        {
-          "id": "oddbear.audio.monitor.next",
-          "prefix": "Audio Monitor",
-          "name": "Next Audio Source",
-          "type": "communicate",
-          "tryInline": true
-        },
-        {
-          "id": "oddbear.audio.monitor.prev",
-          "prefix": "Audio Monitor",
-          "name": "Prev Audio Source",
-          "type": "communicate",
-          "tryInline": true
-        },
-        {
-          "id": "oddbear.audio.monitor.reset",
-          "prefix": "Audio Monitor",
-          "name": "Reset Audio Source to Settings",
-          "type": "communicate",
-          "tryInline": true
         }
       ],
       "states": [
@@ -57,12 +30,6 @@
           "id": "oddbear.audio.monitor.icon",
           "type": "text",
           "desc": "Audio Monitor Current Image Stream",
-          "default": ""
-        },
-        {
-          "id": "oddbear.audio.monitor.device",
-          "type": "text",
-          "desc": "Audio Monitor Current Device Name",
           "default": ""
         }
       ],
