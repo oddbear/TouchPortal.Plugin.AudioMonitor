@@ -15,10 +15,12 @@ namespace TouchPortal.Plugin.AudioMonitor.Models
         public float PeakMax { get; private set; }
 
         public Scale RequestedScale { get; }
+        public string Alias { get; }
 
-        public MeterValues(CaptureSession captureSession, Scale scale)
+        public MeterValues(CaptureSession captureSession, Scale scale, string alias)
         {
             _captureSession = captureSession;
+            Alias = alias;
             RequestedScale = scale;
         }
 

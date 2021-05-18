@@ -40,24 +40,20 @@ namespace TouchPortal.Plugin.AudioMonitor.Capture
             _appSettings.OnChange(settings => _dirtySources = true);
         }
         
-        private (MMDevice mmDevice, Scale scale) GetDevice(AppSettings.Capture.Device device)
+        private MMDevice GetDevice(AppSettings.Capture.Device device)
         {
             if (string.IsNullOrWhiteSpace(device.Name))
             {
                 _logger.LogWarning("Device configuration missing a name. This will be ignored.");
-                return (null, Scale.Logarithmic);
+                return null;
             }
 
             var dataFlow = "Output".Equals(device.Direction, StringComparison.OrdinalIgnoreCase)
                 ? DataFlow.Render
                 : DataFlow.Capture;
-
-            var scale = device.Scale?.StartsWith("Lin", StringComparison.OrdinalIgnoreCase) == true
-                ? Scale.Linear
-                : Scale.Logarithmic;
             
             if ("default".Equals(device.Name, StringComparison.OrdinalIgnoreCase))
-                return (_deviceEnumerator.GetDefaultAudioEndpoint(dataFlow, Role.Console), scale);
+                return _deviceEnumerator.GetDefaultAudioEndpoint(dataFlow, Role.Console);
 
             var mmDevice = _deviceEnumerator
                 .EnumerateAudioEndPoints(dataFlow, DeviceState.Active)
@@ -66,7 +62,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Capture
             if (mmDevice is null)
                 _logger.LogWarning($"Device name '{device.Name}' did not match any devices. This will be ignored.");
 
-            return (mmDevice, scale);
+            return mmDevice;
         }
 
         private void UpdateSources()
@@ -79,16 +75,19 @@ namespace TouchPortal.Plugin.AudioMonitor.Capture
 
             _sessions.Clear();
 
-            var sources = _appSettings.CurrentValue.Devices;
-            var devices = sources.Select(GetDevice);
-
             //Then re-add all:
-            foreach (var (mmDevice, scale) in devices)
+            var sources = _appSettings.CurrentValue.Devices;
+            foreach (var source in sources)
             {
+                var mmDevice = GetDevice(source);
+                var scale = source.Scale?.StartsWith("Lin", StringComparison.OrdinalIgnoreCase) == true
+                    ? Scale.Linear
+                    : Scale.Logarithmic;
+
                 if (mmDevice is null)
                 {
-                    var meterValues = new MeterValues(null, scale);
-                    _sessions.Add( meterValues);
+                    var meterValues = new MeterValues(null, scale, source.Label);
+                    _sessions.Add(meterValues);
                 }
                 else
                 {
@@ -96,7 +95,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Capture
                         ? CaptureSession.FromAudioOutput(mmDevice)
                         : CaptureSession.FromAudioInput(mmDevice);
 
-                    var meterValues = new MeterValues(captureSession, scale);
+                    var meterValues = new MeterValues(captureSession, scale, source.Label);
                     _sessions.Add(meterValues);
                 }
             }

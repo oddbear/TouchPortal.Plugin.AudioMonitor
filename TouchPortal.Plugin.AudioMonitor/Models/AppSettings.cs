@@ -13,7 +13,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Models
         public class Capture
         {
             public int UpdateInterval { get; set; } = 100;
-
+            
             public Device[] Devices { get; set; }
 
             public class Device
@@ -33,6 +33,8 @@ namespace TouchPortal.Plugin.AudioMonitor.Models
                 /// Log or lin, Logarithmic (db) or Linear (%) scale.
                 /// </summary>
                 public string Scale { get; set; } = "Logarithmic";
+                
+                public string Label { get; set; }
             }
         }
 
@@ -40,6 +42,11 @@ namespace TouchPortal.Plugin.AudioMonitor.Models
         {
             public int Width { get; set; } = 100;
             public int Height { get; set; } = 100;
+
+            /// <summary>
+            /// Horizontal or Vertical, needs page refresh after this change.
+            /// </summary>
+            public string Orientation { get; set; } = "Vertical";
 
             public Color Background { get; set; } = Color.Transparent;
             public Color Overlay { get; set; } = Color.FromArgb(0xFF, 0x30, 0x30, 0x30);
