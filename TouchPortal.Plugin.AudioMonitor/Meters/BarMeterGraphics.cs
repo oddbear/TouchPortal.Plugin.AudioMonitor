@@ -27,6 +27,19 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
             _dbMin = -60;
         }
         
+        private Orientation GetOrientation(ref int width, ref int height)
+        {
+            if (height >= width)
+                return Orientation.Vertical;
+
+            //Swap:
+            var tmp = height;
+            height = width;
+            width = tmp;
+
+            return Orientation.Horizontal;
+        }
+
         private double ToDecibel(float value)
             => Math.Log10(value) * 20;
 
@@ -73,13 +86,17 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
             if (defaultBarMeter is null)
                 return DrawPng("No Source");
 
-            var rectangle = new Rectangle(0, 0, _meterSettings.CurrentValue.Width, _meterSettings.CurrentValue.Height);
+            var width = _meterSettings.CurrentValue.Width;
+            var height = _meterSettings.CurrentValue.Height;
+            var orientation = GetOrientation(ref width, ref height);
+
+            var rectangle = new Rectangle(0, 0, width, height);
 
             using (var bitmap = new Bitmap(rectangle.Width, rectangle.Height))
             using (var graphics = Graphics.FromImage(bitmap))
             {
                 FillBackground(graphics, rectangle);
-
+                
                 var meterWidth = rectangle.Width / meters.Count;
                 for (int i = 0; i < meters.Count; i++)
                 {
@@ -96,24 +113,35 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
                     var peakMaxPosition = ToPosition(scale, meter.PeakMax);
                     DrawHorizontalLine(graphics, bounds, peakMaxPosition, _meterSettings.CurrentValue.PeakMax);
                     
-                    DrawAlias(graphics, bounds, meter.Alias);
+                }
 
-                    if (i > 0)
-                        DrawVerticalLine(graphics, bounds);
+                DrawGrids(graphics, rectangle);
+                DrawBorder(graphics, rectangle);
 
+                //Splitting lines between bars (if more than one):
+                for (int i = 1; i < meters.Count; i++)
+                {
+                    var bounds = new Rectangle(meterWidth * i, 0, meterWidth, rectangle.Height);
+                    DrawVerticalLine(graphics, bounds);
+                }
+
+                //Text on top off all graphics:
+                for (int i = 0; i < meters.Count; i++)
+                {
+                    var meter = meters[i];
+                    var scale = meter.RequestedScale;
+                    var bounds = new Rectangle(meterWidth * i, 0, meterWidth, rectangle.Height);
                     //Move to per bar (and alias on each bar... vertically?)
                     var text = scale == Scale.Logarithmic
                         ? DecibelText(meter.Peak)
                         : LinearText(meter.Peak);
 
-                    DrawValueText(graphics, bounds, text);
+                    DrawAlias(graphics, bounds, meter.Alias, orientation);
+                    DrawValueText(graphics, bounds, text, orientation);
                 }
 
-                DrawGrids(graphics, rectangle);
-                DrawBorder(graphics, rectangle);
-                
                 //No more adding graphics after this:
-                if (_meterSettings.CurrentValue.Orientation.StartsWith("Horizontal", StringComparison.CurrentCulture))
+                if (orientation == Orientation.Horizontal)
                     bitmap.RotateFlip(RotateFlipType.Rotate90FlipNone);
 
                 using (var memoryStream = new MemoryStream())
@@ -127,14 +155,22 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
 
         public byte[] DrawPng(string text)
         {
-            var rectangle = new Rectangle(0, 0, _meterSettings.CurrentValue.Width, _meterSettings.CurrentValue.Height);
+            var width = _meterSettings.CurrentValue.Width;
+            var height = _meterSettings.CurrentValue.Height;
+            var orientation = GetOrientation(ref width, ref height);
+
+            var rectangle = new Rectangle(0, 0, width, height);
             using (var bitmap = new Bitmap(rectangle.Width, rectangle.Height))
             using (var graphics = Graphics.FromImage(bitmap))
             {
                 FillBackground(graphics, rectangle);
                 DrawGrids(graphics, rectangle);
-                DrawValueText(graphics, rectangle, text);
+                DrawValueText(graphics, rectangle, text, orientation);
                 DrawBorder(graphics, rectangle);
+
+                //No more adding graphics after this:
+                if (orientation == Orientation.Horizontal)
+                    bitmap.RotateFlip(RotateFlipType.Rotate90FlipNone);
 
                 using (var memoryStream = new MemoryStream())
                 {
@@ -213,7 +249,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
             }
         }
 
-        private void DrawAlias(Graphics graphics, Rectangle rectangle, string text)
+        private void DrawAlias(Graphics graphics, Rectangle rectangle, string text, Orientation orientation)
         {
             if (string.IsNullOrWhiteSpace(text))
                 return;
@@ -221,22 +257,26 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
             using (var font = new Font("Tahoma", 10, FontStyle.Regular))
             using (var brush = new SolidBrush(Color.FromArgb(0xB0, 0x00, 0x00, 0x00)))
             {
-                //TODO: Fine tune. (and compensate for DrawValueText text).
                 var color = Brushes.White;
                 graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
                 graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
 
-                var measure = graphics.MeasureString(text, font);
-                var yPosition = (rectangle.Width - (int)measure.Height) / 2;
-                var textRectangle = new RectangleF(new Point(rectangle.Y + 20, rectangle.X + yPosition), measure);
+                var indent = orientation == Orientation.Horizontal ? 48 : 20;
 
-                //Basically moves ---- bar to become:
-                // |
-                // |
-                // |
-                // |
-                //Bar... therefore, X = Y, and width = height etc.
+                //Always along the bar:
+                var measure = graphics.MeasureString(text, font);
+                var xPosition = rectangle.Y + indent;
+                var yPosition = (rectangle.Width - measure.Height) / 2;
+                var textRectangle = new RectangleF(new PointF(xPosition, rectangle.X + yPosition), measure);
+
+                //Basically moves bar:
+                //                |
+                //                |
+                //                |
+                //                |
+                // to become: ----
                 graphics.RotateTransform(-90);
+                // move x,-h:      ----
                 graphics.TranslateTransform(-rectangle.Height, 0);
 
                 graphics.FillRectangle(brush, textRectangle);
@@ -246,24 +286,39 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
             }
         }
 
-        private void DrawValueText(Graphics graphics, Rectangle rectangle, string text)
+        private void DrawValueText(Graphics graphics, Rectangle rectangle, string text, Orientation orientation)
         {
-            //TODO: FontSize based on rectangle size:
-            using (var font = new Font("Tahoma", 8, FontStyle.Regular))
+            using (var font = new Font("Tahoma", 10, FontStyle.Regular))
             using (var brush = new SolidBrush(Color.FromArgb(0xB0, 0x00, 0x00, 0x00)))
             {
                 var color = Brushes.White;
                 graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
                 graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                
+                if (orientation == Orientation.Horizontal)
+                {
+                    var measure = graphics.MeasureString(text, font);
+                    var yPosition = (rectangle.Width - measure.Height) / 2 + rectangle.X;
+                    var textRectangle = new RectangleF(new PointF(4, yPosition), measure);
 
-                //TODO: Option to rotate:
-                var measure = graphics.MeasureString(text, font);
-                var xPosition = (rectangle.Width - (int)measure.Width) / 2 + rectangle.X;
-                var yPosition = rectangle.Height - (int)measure.Height;
-                var textRectangle = new RectangleF(new Point(xPosition, yPosition), measure);
+                    graphics.RotateTransform(-90);
+                    graphics.TranslateTransform(-rectangle.Height, 0);
 
-                graphics.FillRectangle(brush, textRectangle);
-                graphics.DrawString(text, font, color, textRectangle);
+                    graphics.FillRectangle(brush, textRectangle);
+                    graphics.DrawString(text, font, color, textRectangle);
+
+                    graphics.ResetTransform();
+                }
+                else
+                {
+                    var measure = graphics.MeasureString(text, font);
+                    var xPosition = (rectangle.Width - measure.Width) / 2 + rectangle.X;
+                    var yPosition = rectangle.Height - measure.Height;
+                    var textRectangle = new RectangleF(new PointF(xPosition, yPosition), measure);
+
+                    graphics.FillRectangle(brush, textRectangle);
+                    graphics.DrawString(text, font, color, textRectangle);
+                }
             }
         }
     }

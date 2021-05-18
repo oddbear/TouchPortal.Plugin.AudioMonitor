@@ -42,12 +42,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Models
         {
             public int Width { get; set; } = 100;
             public int Height { get; set; } = 100;
-
-            /// <summary>
-            /// Horizontal or Vertical, needs page refresh after this change.
-            /// </summary>
-            public string Orientation { get; set; } = "Vertical";
-
+            
             public Color Background { get; set; } = Color.Transparent;
             public Color Overlay { get; set; } = Color.FromArgb(0xFF, 0x30, 0x30, 0x30);
 
