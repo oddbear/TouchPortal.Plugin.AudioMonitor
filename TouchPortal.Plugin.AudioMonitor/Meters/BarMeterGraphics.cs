@@ -43,7 +43,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
         private double ToDecibel(float value)
             => Math.Log10(value) * 20;
 
-        private int ToPosition(Scale scale, float value)
+        private int ToPosition(Scale scale, float value, Rectangle rectangle)
         {
             if (scale == Scale.Logarithmic)
             {
@@ -53,13 +53,13 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
 
                 var percentage = 1 - (decibel / _dbMin);
 
-                var position = _meterSettings.CurrentValue.Height * percentage;
+                var position = rectangle.Height * percentage;
 
                 return (int)position;
             }
             else
             {
-                var position = _meterSettings.CurrentValue.Height * value;
+                var position = rectangle.Height * value;
 
                 return (int)position;
             }
@@ -104,13 +104,13 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
                     var scale = meter.RequestedScale;
                     var bounds = new Rectangle(meterWidth * i, 0, meterWidth, rectangle.Height);
                     
-                    var peakPosition = ToPosition(scale, meter.Peak);
+                    var peakPosition = ToPosition(scale, meter.Peak, rectangle);
                     FillBarMeter(graphics, bounds, peakPosition, scale);
 
-                    var peakHoldPosition = ToPosition(scale, meter.PeakHold);
+                    var peakHoldPosition = ToPosition(scale, meter.PeakHold, rectangle);
                     DrawHorizontalLine(graphics, bounds, peakHoldPosition, _meterSettings.CurrentValue.PeakHold);
 
-                    var peakMaxPosition = ToPosition(scale, meter.PeakMax);
+                    var peakMaxPosition = ToPosition(scale, meter.PeakMax, rectangle);
                     DrawHorizontalLine(graphics, bounds, peakMaxPosition, _meterSettings.CurrentValue.PeakMax);
                     
                 }
