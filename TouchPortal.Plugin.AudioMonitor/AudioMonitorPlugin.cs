@@ -59,6 +59,12 @@ namespace TouchPortal.Plugin.AudioMonitor
             }
         }
 
+        void ITouchPortalEventHandler.OnClosedEvent(string message)
+        {
+            _logger.LogInformation("Close Event: Plugin Disconnected from TouchPortal.");
+            Environment.Exit(0);
+        }
+
         #region Ignored TouchPortal Events
         void ITouchPortalEventHandler.OnInfoEvent(InfoEvent message)
             => _logger.LogDebug("Method invoked '{0}'", nameof(ITouchPortalEventHandler.OnInfoEvent));
@@ -68,9 +74,6 @@ namespace TouchPortal.Plugin.AudioMonitor
 
         void ITouchPortalEventHandler.OnBroadcastEvent(BroadcastEvent message)
             => _logger.LogDebug("Method invoked '{0}'", nameof(ITouchPortalEventHandler.OnBroadcastEvent));
-
-        void ITouchPortalEventHandler.OnClosedEvent(string message)
-            => _logger.LogDebug("Method invoked '{0}'", nameof(ITouchPortalEventHandler.OnClosedEvent));
 
         void ITouchPortalEventHandler.OnListChangedEvent(ListChangeEvent message)
             => _logger.LogDebug("Method invoked '{0}'", nameof(ITouchPortalEventHandler.OnListChangedEvent));
