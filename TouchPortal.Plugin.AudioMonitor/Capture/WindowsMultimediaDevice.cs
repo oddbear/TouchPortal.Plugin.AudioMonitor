@@ -110,13 +110,10 @@ namespace TouchPortal.Plugin.AudioMonitor.Capture
             foreach (var source in sources)
             {
                 var mmDevice = GetDevice(source);
-                var scale = source.Scale?.StartsWith("Lin", StringComparison.OrdinalIgnoreCase) == true
-                    ? Scale.Linear
-                    : Scale.Logarithmic;
 
                 if (mmDevice is null)
                 {
-                    var meterValues = new MeterValues(null, scale, source.Label);
+                    var meterValues = new MeterValues(null, source);
                     _sessions.Add(meterValues);
                 }
                 else
@@ -125,7 +122,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Capture
                         ? CaptureSession.FromAudioOutput(mmDevice)
                         : CaptureSession.FromAudioInput(mmDevice);
 
-                    var meterValues = new MeterValues(captureSession, scale, source.Label);
+                    var meterValues = new MeterValues(captureSession, source);
                     _sessions.Add(meterValues);
                 }
             }

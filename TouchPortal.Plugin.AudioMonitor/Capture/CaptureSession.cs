@@ -13,6 +13,8 @@ namespace TouchPortal.Plugin.AudioMonitor.Capture
 
         private float _max;
 
+        public string DeviceName => _mmDevice.FriendlyName;
+
         private CaptureSession(MMDevice mmDevice, WasapiCapture recorder)
         {
             _mmDevice = mmDevice;

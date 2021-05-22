@@ -35,6 +35,8 @@ namespace TouchPortal.Plugin.AudioMonitor.Models
                 public string Scale { get; set; } = "Logarithmic";
                 
                 public string Label { get; set; }
+
+                public bool ShowLevels { get; set; } = true;
             }
         }
 

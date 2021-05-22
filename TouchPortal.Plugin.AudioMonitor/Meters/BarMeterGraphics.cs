@@ -129,15 +129,10 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
                 for (int i = 0; i < meters.Count; i++)
                 {
                     var meter = meters[i];
-                    var scale = meter.RequestedScale;
                     var bounds = new Rectangle(meterWidth * i, 0, meterWidth, rectangle.Height);
-                    //Move to per bar (and alias on each bar... vertically?)
-                    var text = scale == Scale.Logarithmic
-                        ? DecibelText(meter.Peak)
-                        : LinearText(meter.Peak);
 
-                    DrawAlias(graphics, bounds, meter.Alias, orientation);
-                    DrawValueText(graphics, bounds, text, orientation);
+                    DrawAlias(graphics, bounds, meter, orientation);
+                    DrawMeterValue(graphics, bounds, meter, orientation);
                 }
 
                 //No more adding graphics after this:
@@ -146,7 +141,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
 
                 using (var memoryStream = new MemoryStream())
                 {
-                    bitmap.Save(memoryStream, ImageFormat.Png);
+                    bitmap.Save(memoryStream, ImageFormat.Jpeg);
 
                     return memoryStream.ToArray();
                 }
@@ -249,8 +244,9 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
             }
         }
 
-        private void DrawAlias(Graphics graphics, Rectangle rectangle, string text, Orientation orientation)
+        private void DrawAlias(Graphics graphics, Rectangle rectangle, MeterValues meter, Orientation orientation)
         {
+            var text = meter.Alias;
             if (string.IsNullOrWhiteSpace(text))
                 return;
 
@@ -261,7 +257,11 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
                 graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
                 graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
 
-                var indent = orientation == Orientation.Horizontal ? 48 : 20;
+                var indent = !meter.ShowLevels
+                    ? 0
+                    : orientation == Orientation.Horizontal
+                        ? 48
+                        : 20;
 
                 //Always along the bar:
                 var measure = graphics.MeasureString(text, font);
@@ -284,6 +284,18 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
 
                 graphics.ResetTransform();
             }
+        }
+
+        private void DrawMeterValue(Graphics graphics, Rectangle rectangle, MeterValues meter, Orientation orientation)
+        {
+            if (!meter.ShowLevels)
+                return;
+            
+            var text = meter.RequestedScale == Scale.Logarithmic
+                ? DecibelText(meter.Peak)
+                : LinearText(meter.Peak);
+
+            DrawValueText(graphics, rectangle, text, orientation);
         }
 
         private void DrawValueText(Graphics graphics, Rectangle rectangle, string text, Orientation orientation)
