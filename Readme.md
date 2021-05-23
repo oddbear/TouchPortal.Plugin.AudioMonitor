@@ -17,7 +17,7 @@ All feedback on this plugin is welcome.
 
 The latest plugin _(v2)_ is now in pre-release, and should be quite stable. For the stable v1 plugin, se bottom of this page.
 
-Download and install .tpp file from v2 beta **[Pre-Release](https://github.com/oddbear/TouchPortal.Plugin.AudioMonitor/releases/tag/v2-build-005)**.
+Download and install .tpp file from v2 beta **[Pre-Release](https://github.com/oddbear/TouchPortal.Plugin.AudioMonitor/releases/download/v2-build-006/TouchPortal.Plugin.AudioMonitor.Plugin.tpp)**.
 
 **Important:** Some times you need to **refresh** the device page to "Kickstart" the updates.
 
@@ -48,7 +48,7 @@ The default scale is Logarithmic (-60db - 0db), but it is possible to change to 
 
 To make the meter actually update, you will need to setup the On Event page in Touch Portal.<br />
 Alternatively you can download and import the [TouchPortal.Plugin.AudioMonitor.Button.tpb
-](https://github.com/oddbear/TouchPortal.Plugin.AudioMonitor/releases/download/v2-build-005/TouchPortal.Plugin.AudioMonitor.Button.tpb) file.
+](https://github.com/oddbear/TouchPortal.Plugin.AudioMonitor/releases/download/v2-build-006/TouchPortal.Plugin.AudioMonitor.Button.tpb) file.
 
 ### Event edit
 
@@ -104,13 +104,15 @@ The default file would look like this, underneath there will be an explanation o
         "Direction": "Input",
         "Scale": "Logarithmic",
         "Label": "(.+).*\\(",
-        "ShowLevels": true
+        "Levels": true
       }
     ]
   },
   "BarMeter": {
     "Width": 100,
     "Height": 100,
+    
+    "Debug": false,
     
     "Background": "Transparent",
     "Overlay": "#FF303030",
@@ -154,7 +156,7 @@ There are 5 options you can change here:
 > This can be either set to a text of your choice, ex. RTX Voice. It does not need to match the Name.<br />
 > You can also use Regex, where it would be the first group match. Ex. the default `"(.+).*\\("`, will in the text "Something (something)" mean, take everything until you find " (", and display as the label, then ignore the rest.
 
-* "ShowLevels": boolean
+* "Levels": boolean
 > Can be set to `true` or `false`
 
 ### BarMeter
@@ -163,6 +165,12 @@ This single section is used to set styling and size for the meter.
 
 #### Width and Height
 If the `Width` is greater than the `Height`, the meter will be horizontal. And if you change this, you will need to refresh the page on your Touch Portal device. It will only support whole numbers.
+
+#### Debug
+
+This `debug` a boolean that can be `true` or `false`. If true it will add the frame number in the center of the meter.<br />
+This way you might see if any frames are dropped, or rendered in the wrong order.<br />
+This usually means the `UpdateInterval` is to low, and needs to be increased (or image size/detail needs do be decreased).
 
 #### Colors
 
@@ -198,31 +206,33 @@ An example could then look like:
         "Direction": "Input",
         "Scale": "Logarithmic",
         "Label": "(.+).*\\(",
-        "ShowLevels": true
+        "Levels": true
       }, {
         "Name": "Microphone (NVIDIA Broadcast)",
         "Direction": "Input",
         "Scale": "Logarithmic",
         "Label": "RTX Voice",
-        "ShowLevels": true
+        "Levels": true
       }, {
         "Name": "Chat (TC-Helicon GoXLR)",
         "Direction": "Output",
         "Scale": "Linear",
         "Label": "(.+).*\\(",
-        "ShowLevels": true
+        "Levels": true
       }, {
         "Name": "Music (TC-Helicon GoXLR)",
         "Direction": "Output",
         "Scale": "Linear",
         "Label": "(.+).*\\(",
-        "ShowLevels": true
+        "Levels": true
       }
     ]
   },
   "BarMeter": {
     "Width": 400,
     "Height": 200,
+    
+    "Debug": false,
     
     "Background": "Transparent",
     "Overlay": "#FF303030",
