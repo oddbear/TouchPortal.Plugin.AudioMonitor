@@ -83,7 +83,7 @@ The configuration can be found on your local disk after installation of the plug
 When changing values, the updates should happen live on the screen in Touch Portal. If something seems wrong, please press the update button in Touch Portal on your device. If this does not help, there might be something wrong in the format.
 
 The configuration is in JSON format, and if your not familiar with this it could be an idea to copy the content of the `appsettings.json` file into a page like [JSON Schema Validator
-](https://www.jsonschemavalidator.net/), to get feedback if the changes are valid json.
+](https://www.jsonschemavalidator.net/s/9341jfJh), to get feedback if the changes are valid json.
 
 The default file would look like this, underneath there will be an explanation of what this means.
 
