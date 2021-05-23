@@ -40,8 +40,8 @@ namespace TouchPortal.Plugin.AudioMonitor
         public void MonitoringCallback(IReadOnlyList<MeterValues> meters)
         {
             var image = _barMeterGraphics.DrawPng(meters);
-
-            _client.StateUpdate("oddbear.audio.monitor.icon", Convert.ToBase64String(image));
+            if (image?.Length > 0)
+                _client.StateUpdate("oddbear.audio.monitor.icon", Convert.ToBase64String(image));
         }
         
         void ITouchPortalEventHandler.OnActionEvent(ActionEvent message)

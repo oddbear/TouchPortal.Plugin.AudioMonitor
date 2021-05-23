@@ -30,7 +30,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Models
             
             Alias = Match(captureSession?.DeviceName, source.Label) ?? source.Label ?? string.Empty;
 
-            ShowLevels = source.ShowLevels;
+            ShowLevels = source.Levels;
         }
 
         private string Match(string input, string pattern)

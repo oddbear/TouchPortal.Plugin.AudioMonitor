@@ -36,7 +36,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Models
                 
                 public string Label { get; set; }
 
-                public bool ShowLevels { get; set; } = true;
+                public bool Levels { get; set; } = true;
             }
         }
 
@@ -44,6 +44,8 @@ namespace TouchPortal.Plugin.AudioMonitor.Models
         {
             public int Width { get; set; } = 100;
             public int Height { get; set; } = 100;
+
+            public bool Debug { get; set; }
             
             public Color Background { get; set; } = Color.Transparent;
             public Color Overlay { get; set; } = Color.FromArgb(0xFF, 0x30, 0x30, 0x30);

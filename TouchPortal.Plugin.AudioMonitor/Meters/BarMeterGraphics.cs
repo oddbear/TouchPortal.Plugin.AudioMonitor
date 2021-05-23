@@ -5,6 +5,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TouchPortal.Plugin.AudioMonitor.Models;
@@ -17,6 +18,9 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
         private readonly ILogger<BarMeterGraphics> _logger;
         private readonly IOptionsMonitor<AppSettings.BarMeterSettings> _meterSettings;
         private readonly double _dbMin;
+
+        //Used as a frame number to debug dropped frames:
+        private long _debugCount;
 
         public BarMeterGraphics(ILogger<BarMeterGraphics> logger,
                                 IOptionsMonitor<AppSettings.BarMeterSettings> meterSettings)
@@ -82,97 +86,119 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
 
         public byte[] DrawPng(IReadOnlyList<MeterValues> meters)
         {
-            var defaultBarMeter = meters.FirstOrDefault();
-            if (defaultBarMeter is null)
-                return DrawPng("No Source");
-
-            var width = _meterSettings.CurrentValue.Width;
-            var height = _meterSettings.CurrentValue.Height;
-            var orientation = GetOrientation(ref width, ref height);
-
-            var rectangle = new Rectangle(0, 0, width, height);
-
-            using (var bitmap = new Bitmap(rectangle.Width, rectangle.Height))
-            using (var graphics = Graphics.FromImage(bitmap))
+            try
             {
-                FillBackground(graphics, rectangle);
-                
-                var meterWidth = rectangle.Width / meters.Count;
-                for (int i = 0; i < meters.Count; i++)
+                var defaultBarMeter = meters.FirstOrDefault();
+                if (defaultBarMeter is null)
+                    return DrawPng("No Source");
+
+                var width = _meterSettings.CurrentValue.Width;
+                var height = _meterSettings.CurrentValue.Height;
+                var orientation = GetOrientation(ref width, ref height);
+
+                var rectangle = new Rectangle(0, 0, width, height);
+
+                using (var bitmap = new Bitmap(rectangle.Width, rectangle.Height))
+                using (var graphics = Graphics.FromImage(bitmap))
                 {
-                    var meter = meters[i];
-                    var scale = meter.RequestedScale;
-                    var bounds = new Rectangle(meterWidth * i, 0, meterWidth, rectangle.Height);
-                    
-                    var peakPosition = ToPosition(scale, meter.Peak, rectangle);
-                    FillBarMeter(graphics, bounds, peakPosition, scale);
+                    FillBackground(graphics, rectangle);
 
-                    var peakHoldPosition = ToPosition(scale, meter.PeakHold, rectangle);
-                    DrawHorizontalLine(graphics, bounds, peakHoldPosition, _meterSettings.CurrentValue.PeakHold);
+                    var meterWidth = rectangle.Width / meters.Count;
+                    for (int i = 0; i < meters.Count; i++)
+                    {
+                        var meter = meters[i];
+                        var scale = meter.RequestedScale;
+                        var bounds = new Rectangle(meterWidth * i, 0, meterWidth, rectangle.Height);
 
-                    var peakMaxPosition = ToPosition(scale, meter.PeakMax, rectangle);
-                    DrawHorizontalLine(graphics, bounds, peakMaxPosition, _meterSettings.CurrentValue.PeakMax);
-                    
+                        var peakPosition = ToPosition(scale, meter.Peak, rectangle);
+                        FillBarMeter(graphics, bounds, peakPosition, scale);
+
+                        var peakHoldPosition = ToPosition(scale, meter.PeakHold, rectangle);
+                        DrawHorizontalLine(graphics, bounds, peakHoldPosition, _meterSettings.CurrentValue.PeakHold);
+
+                        var peakMaxPosition = ToPosition(scale, meter.PeakMax, rectangle);
+                        DrawHorizontalLine(graphics, bounds, peakMaxPosition, _meterSettings.CurrentValue.PeakMax);
+
+                    }
+
+                    DrawGrids(graphics, rectangle);
+                    DrawBorder(graphics, rectangle);
+
+                    //Splitting lines between bars (if more than one):
+                    for (int i = 1; i < meters.Count; i++)
+                    {
+                        var bounds = new Rectangle(meterWidth * i, 0, meterWidth, rectangle.Height);
+                        DrawVerticalLine(graphics, bounds);
+                    }
+
+                    //Text on top off all graphics:
+                    for (int i = 0; i < meters.Count; i++)
+                    {
+                        var meter = meters[i];
+                        var bounds = new Rectangle(meterWidth * i, 0, meterWidth, rectangle.Height);
+
+                        DrawAlias(graphics, bounds, meter, orientation);
+                        DrawMeterValue(graphics, bounds, meter, orientation);
+                    }
+
+                    if (_meterSettings.CurrentValue.Debug)
+                    {
+                        var debugCount = _debugCount++;
+                        DrawDebugText(graphics, rectangle, debugCount);
+                    }
+
+                    //No more adding graphics after this:
+                    if (orientation == Orientation.Horizontal)
+                        bitmap.RotateFlip(RotateFlipType.Rotate90FlipNone);
+
+                    using (var memoryStream = new MemoryStream())
+                    {
+                        bitmap.Save(memoryStream, ImageFormat.Jpeg);
+
+                        return memoryStream.ToArray();
+                    }
                 }
-
-                DrawGrids(graphics, rectangle);
-                DrawBorder(graphics, rectangle);
-
-                //Splitting lines between bars (if more than one):
-                for (int i = 1; i < meters.Count; i++)
-                {
-                    var bounds = new Rectangle(meterWidth * i, 0, meterWidth, rectangle.Height);
-                    DrawVerticalLine(graphics, bounds);
-                }
-
-                //Text on top off all graphics:
-                for (int i = 0; i < meters.Count; i++)
-                {
-                    var meter = meters[i];
-                    var bounds = new Rectangle(meterWidth * i, 0, meterWidth, rectangle.Height);
-
-                    DrawAlias(graphics, bounds, meter, orientation);
-                    DrawMeterValue(graphics, bounds, meter, orientation);
-                }
-
-                //No more adding graphics after this:
-                if (orientation == Orientation.Horizontal)
-                    bitmap.RotateFlip(RotateFlipType.Rotate90FlipNone);
-
-                using (var memoryStream = new MemoryStream())
-                {
-                    bitmap.Save(memoryStream, ImageFormat.Jpeg);
-
-                    return memoryStream.ToArray();
-                }
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Error while drawing png frame.");
+                return Array.Empty<byte>();
             }
         }
 
         public byte[] DrawPng(string text)
         {
-            var width = _meterSettings.CurrentValue.Width;
-            var height = _meterSettings.CurrentValue.Height;
-            var orientation = GetOrientation(ref width, ref height);
-
-            var rectangle = new Rectangle(0, 0, width, height);
-            using (var bitmap = new Bitmap(rectangle.Width, rectangle.Height))
-            using (var graphics = Graphics.FromImage(bitmap))
+            try
             {
-                FillBackground(graphics, rectangle);
-                DrawGrids(graphics, rectangle);
-                DrawValueText(graphics, rectangle, text, orientation);
-                DrawBorder(graphics, rectangle);
+                var width = _meterSettings.CurrentValue.Width;
+                var height = _meterSettings.CurrentValue.Height;
+                var orientation = GetOrientation(ref width, ref height);
 
-                //No more adding graphics after this:
-                if (orientation == Orientation.Horizontal)
-                    bitmap.RotateFlip(RotateFlipType.Rotate90FlipNone);
-
-                using (var memoryStream = new MemoryStream())
+                var rectangle = new Rectangle(0, 0, width, height);
+                using (var bitmap = new Bitmap(rectangle.Width, rectangle.Height))
+                using (var graphics = Graphics.FromImage(bitmap))
                 {
-                    bitmap.Save(memoryStream, ImageFormat.Png);
+                    FillBackground(graphics, rectangle);
+                    DrawGrids(graphics, rectangle);
+                    DrawValueText(graphics, rectangle, text, orientation);
+                    DrawBorder(graphics, rectangle);
 
-                    return memoryStream.ToArray();
+                    //No more adding graphics after this:
+                    if (orientation == Orientation.Horizontal)
+                        bitmap.RotateFlip(RotateFlipType.Rotate90FlipNone);
+
+                    using (var memoryStream = new MemoryStream())
+                    {
+                        bitmap.Save(memoryStream, ImageFormat.Png);
+
+                        return memoryStream.ToArray();
+                    }
                 }
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Error while drawing png frame.");
+                return Array.Empty<byte>();
             }
         }
 
@@ -331,6 +357,29 @@ namespace TouchPortal.Plugin.AudioMonitor.Meters
                     graphics.FillRectangle(brush, textRectangle);
                     graphics.DrawString(text, font, color, textRectangle);
                 }
+            }
+        }
+        
+        private void DrawDebugText(Graphics graphics, Rectangle rectangle, long count)
+        {
+            using (var font = new Font("Tahoma", 10, FontStyle.Regular))
+            using (var brush = new SolidBrush(Color.FromArgb(0xFF, 0x00, 0x00, 0x00)))
+            using (var pen = new Pen(Color.FromArgb(0xFF, 0xFF, 0x00, 0xFF)))
+            {
+                var color = Brushes.White;
+                graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+                var text = count.ToString();
+                var measure = graphics.MeasureString(text, font);
+                var xPosition = (rectangle.Width - measure.Width) / 2;
+                var yPosition = (rectangle.Height - measure.Height) / 2;
+                var textRectangle = new RectangleF(new PointF(xPosition, yPosition), measure);
+
+                graphics.FillRectangle(brush, textRectangle);
+                pen.Alignment = PenAlignment.Outset;
+                graphics.DrawRectangle(pen, new Rectangle((int)textRectangle.X, (int)textRectangle.Y, (int)textRectangle.Width, (int)textRectangle.Height));
+                graphics.DrawString(text, font, color, textRectangle);
             }
         }
     }
