@@ -171,6 +171,7 @@ If the `Width` is greater than the `Height`, the meter will be horizontal. And i
 This `debug` a boolean that can be `true` or `false`. If true it will add the frame number in the center of the meter.<br />
 This way you might see if any frames are dropped, or rendered in the wrong order.<br />
 This usually means the `UpdateInterval` is to low, and needs to be increased (or image size/detail needs do be decreased).
+> If you get frame drops, and you have set this number quite high. Then try to kill the TouchPortal App, and start it again.
 
 #### Colors
 
