@@ -7,6 +7,7 @@ using TouchPortal.Plugin.AudioMonitor.Models;
 using TouchPortalSDK;
 using TouchPortalSDK.Interfaces;
 using TouchPortalSDK.Messages.Events;
+using TouchPortalSDK.Messages.Models;
 
 namespace TouchPortal.Plugin.AudioMonitor
 {
@@ -80,6 +81,15 @@ namespace TouchPortal.Plugin.AudioMonitor
 
         void ITouchPortalEventHandler.OnUnhandledEvent(string jsonMessage)
             => _logger.LogDebug("Method invoked '{0}'", nameof(ITouchPortalEventHandler.OnUnhandledEvent));
+
+        public void OnNotificationOptionClickedEvent(NotificationOptionClickedEvent message)
+            => _logger.LogDebug("Method invoked '{0}'", nameof(ITouchPortalEventHandler.OnNotificationOptionClickedEvent));
+
+        public void OnConnecterChangeEvent(ConnectorChangeEvent message)
+            => _logger.LogDebug("Method invoked '{0}'", nameof(ITouchPortalEventHandler.OnConnecterChangeEvent));
+
+        public void OnShortConnectorIdNotificationEvent(ConnectorInfo connectorInfo)
+            => _logger.LogDebug("Method invoked '{0}'", nameof(ITouchPortalEventHandler.OnShortConnectorIdNotificationEvent));
         #endregion
     }
 }

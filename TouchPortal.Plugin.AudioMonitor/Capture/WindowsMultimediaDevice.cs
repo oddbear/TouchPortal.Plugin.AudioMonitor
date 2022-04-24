@@ -5,12 +5,12 @@ using System.Threading;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NAudio.CoreAudioApi;
+using NAudio.CoreAudioApi.Interfaces;
 using TouchPortal.Plugin.AudioMonitor.Models;
-using TouchPortal.Plugin.AudioMonitor.Models.Enums;
 
 namespace TouchPortal.Plugin.AudioMonitor.Capture
 {
-    public class WindowsMultimediaDevice
+    public class WindowsMultimediaDevice : IMMNotificationClient
     {
         private readonly ILogger<WindowsMultimediaDevice> _logger;
         private readonly IOptionsMonitor<AppSettings.Capture> _appSettings;
@@ -31,8 +31,8 @@ namespace TouchPortal.Plugin.AudioMonitor.Capture
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _appSettings = appSettings ?? throw new ArgumentNullException(nameof(appSettings));
             _callbacks = callbacks ?? throw new ArgumentNullException(nameof(callbacks));
-
             _deviceEnumerator = new MMDeviceEnumerator();
+            _deviceEnumerator.RegisterEndpointNotificationCallback(this);
 
             _monitoringThread = new Thread(Monitoring) { IsBackground = true };
             _monitoringThread.Start();
@@ -158,6 +158,38 @@ namespace TouchPortal.Plugin.AudioMonitor.Capture
             {
                 //If sleeping when the thread is Interrupted, this is ok.
             }
+        }
+
+        public void OnDeviceStateChanged(string deviceId, DeviceState newState)
+        {
+            var device = _sessions.FirstOrDefault(meter => meter.Id == deviceId);
+            if (device is null)
+                return;
+
+            if (newState == DeviceState.Active)
+                _dirtySources = true;
+
+            _logger.LogInformation($"OnDeviceStateChanged: {deviceId}, {newState}");
+        }
+
+        public void OnDeviceAdded(string pwstrDeviceId)
+        {
+            _logger.LogInformation($"OnDeviceAdded: {pwstrDeviceId}");
+        }
+
+        public void OnDeviceRemoved(string deviceId)
+        {
+            _logger.LogInformation($"OnDeviceRemoved: {deviceId}");
+        }
+
+        public void OnDefaultDeviceChanged(DataFlow flow, Role role, string defaultDeviceId)
+        {
+            _logger.LogInformation($"OnDefaultDeviceChanged: {flow}, {role}, {defaultDeviceId}");
+        }
+
+        public void OnPropertyValueChanged(string pwstrDeviceId, PropertyKey key)
+        {
+            _logger.LogDebug($"OnPropertyValueChanged: {pwstrDeviceId}, {key}");
         }
     }
 }

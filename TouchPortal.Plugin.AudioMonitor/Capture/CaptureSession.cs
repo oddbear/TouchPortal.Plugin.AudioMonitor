@@ -1,6 +1,7 @@
 ﻿using System;
 using NAudio.Wave;
 using NAudio.CoreAudioApi;
+using System.Threading;
 
 namespace TouchPortal.Plugin.AudioMonitor.Capture
 {
@@ -14,6 +15,8 @@ namespace TouchPortal.Plugin.AudioMonitor.Capture
         private float _max;
 
         public string DeviceName => _mmDevice.FriendlyName;
+
+        public string DeviceId => _mmDevice.ID;
 
         private CaptureSession(MMDevice mmDevice, WasapiCapture recorder)
         {

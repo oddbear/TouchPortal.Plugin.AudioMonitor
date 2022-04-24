@@ -19,6 +19,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Models
         public Scale RequestedScale { get; }
         public bool ShowLevels { get; }
         public string Alias { get; }
+        public string Id { get; }
 
         public MeterValues(CaptureSession captureSession, AppSettings.Capture.Device source)
         {
@@ -31,6 +32,7 @@ namespace TouchPortal.Plugin.AudioMonitor.Models
             Alias = Match(captureSession?.DeviceName, source.Label) ?? source.Label ?? string.Empty;
 
             ShowLevels = source.Levels;
+            Id = captureSession.DeviceId;
         }
 
         private string Match(string input, string pattern)
